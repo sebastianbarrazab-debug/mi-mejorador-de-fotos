@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mejorar Calidad de Fotos Online Gratis - Arreglar Imagen Pixelada</title>
+    <meta name="description" content="Aumenta la nitidez de tus imágenes online gratis. Elimina el ruido y arregla fotos borrosas en segundos sin pagar nada.">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #0f172a; color: white; padding: 40px; }
+        .card { background: #1e293b; padding: 30px; border-radius: 12px; display: inline-block; max-width: 450px; width: 100%; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
+        input[type="file"] { margin: 20px 0; background: #334155; padding: 10px; border-radius: 6px; width: 80%; }
+        button { background: #2563eb; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; width: 90%; transition: 0.2s; }
+        button:hover { background: #1d4ed8; }
+        #seccion-anuncio { display: none; margin-top: 25px; padding: 20px; background: #334155; border-radius: 8px; border: 2px dashed #64748b; }
+        #btn-descargar:disabled { background: #64748b; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <h1>Mejorar Calidad de Fotos Gratis</h1>
+    <p>Sube tu foto borrosa, nuestro sistema la optimizará en milisegundos.</p>
+
+    <div class="card">
+        <input type="file" id="input-foto" accept="image/*"><br>
+        <button onclick="procesarImagen()">Optimizar Calidad Ahora</button>
+
+        <!-- Contenedor del Anuncio de Google AdSense -->
+        <div id="seccion-anuncio">
+            <h4>Tu imagen HD está lista. Desbloqueando descarga...</h4>
+            
+            <!-- ESPACIO PUBLICITARIO -->
+            <div style="background: #1e293b; padding: 30px; margin: 15px 0; color: #94a3b8;">
+                [Aquí aparecerá tu anuncio de Google AdSense]
+            </div>
+            
+            <button id="btn-descargar" disabled>Espera 10s...</button>
+        </div>
+    </div>
+
+    <script>
+        let linkDescarga = "";
+
+        async function procesarImagen() {
+            let archivo = document.getElementById('input-foto').files[0];
+            if(!archivo) return alert("Por favor, selecciona una foto primero.");
+
+            let data = new FormData();
+            data.append("foto", archivo);
+
+            let res = await fetch('/procesar', { method: 'POST', body: data });
+            let json = await res.json();
+
+            if(json.descarga_url) {
+                linkDescarga = json.descarga_url;
+                mostrarAnuncioYContador();
+            } else {
+                alert("Hubo un error al procesar.");
+            }
+        }
+
+        function mostrarAnuncioYContador() {
+            document.getElementById('seccion-anuncio').style.display = 'block';
+            let tiempoRestante = 10;
+            let boton = document.getElementById('btn-descargar');
+
+            let reloj = setInterval(() => {
+                tiempoRestante--;
+                boton.innerText = `Espera ${tiempoRestante}s...`;
+
+                if(tiempoRestante <= 0) {
+                    clearInterval(reloj);
+                    boton.innerText = "Descargar Foto en Alta Calidad";
+                    boton.removeAttribute('disabled');
+                    boton.onclick = () => { window.location.href = linkDescarga; };
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
