@@ -24,12 +24,12 @@
         .tab-content.active { display: block; }
 
         /* Tarjeta Premium Oscura */
-        .card { background: #111827; padding: 40px 30px; border-radius: 16px; border: 1px solid #1f2937; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); text-align: center; }
+        .card { background: #111827; padding: 40px 30px; border-radius: 16px; border: 1px solid #1f2937; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); text-align: center; margin-bottom: 20px; }
         h2 { margin-top: 0; color: #f8fafc; font-size: 24px; }
         p { color: #94a3b8; font-size: 14px; margin-bottom: 25px; }
         
         input[type="file"] { display: none; }
-        .file-label { display: block; background: #1e293b; border: 2px dashed #3b82f6; padding: 30px 20px; border-radius: 10px; cursor: pointer; transition: 0.2s; color: #3b82f6; font-weight: 600; margin-bottom: 20px; }
+        .file-label { display: block; background: #1e293b; border: 2px dashed #3b82f6; padding: 30px 20px; border-radius: 10px; cursor: pointer; transition: 0.2s; color: #3b82f6; font-weight: 600; margin-bottom: 20px; word-break: break-all; }
         .file-label:hover { background: #1e293b; border-color: #60a5fa; color: #60a5fa; }
         
         .btn-action { background: #2563eb; color: white; padding: 14px 28px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; box-shadow: 0 4px 6px -1px rgba(37,99,235,0.4); }
@@ -37,7 +37,7 @@
         .btn-action:disabled { background: #4b5563; cursor: not-allowed; box-shadow: none; }
 
         /* Zona de Espera y Anuncios */
-        .ads-section { display: none; margin-top: 30px; padding: 20px; background: #1e293b; border-radius: 12px; border: 1px solid #374151; }
+        .ads-section { display: none; width: 100%; max-width: 500px; padding: 20px; background: #1e293b; border-radius: 12px; border: 1px solid #374151; box-sizing: border-box; }
         .ad-box { background: #0b0f19; padding: 40px 20px; margin: 20px 0; color: #64748b; border-radius: 8px; font-size: 14px; border: 1px dashed #334155; }
         .status-text { color: #34d399; font-weight: 600; margin-bottom: 10px; }
     </style>
@@ -55,7 +55,7 @@
 
     <div class="container">
         
-        <!-- HERRAMIENTA 1: OPTIMIZAR CALIDAD (MÓDULO ANTERIOR) -->
+        <!-- HERRAMIENTA 1: OPTIMIZAR CALIDAD -->
         <div id="tab-mejorar" class="tab-content active">
             <div class="card">
                 <h2>Optimizar Calidad de Fotos</h2>
@@ -66,7 +66,7 @@
             </div>
         </div>
 
-        <!-- HERRAMIENTA 2: CONVERTIR HEIC (WEBASSEMBLY COMIENZA AQUÍ) -->
+        <!-- HERRAMIENTA 2: CONVERTIR HEIC (WEBASSEMBLY) -->
         <div id="tab-heic" class="tab-content">
             <div class="card">
                 <h2>Convertir HEIC de iPhone a JPG</h2>
@@ -78,18 +78,16 @@
         </div>
 
         <!-- BLOQUE CENTRAL DE MONETIZACIÓN (COMPARTIDO) -->
-        <div class="tab-content active" style="max-width: 500px;">
-            <div class="ads-section" id="seccion-anuncio">
-                <div class="status-text" id="texto-estado">¡Procesamiento completo con éxito!</div>
-                
-                <!-- ZONA DONDE PEGACIONES TU CÓDIGO DE GOOGLE ADSENSE -->
-                <div class="ad-box">
-                    <strong>[Espacio Publicitario Reservado para Google AdSense]</strong><br>
-                    <span style="font-size: 12px; display:block; margin-top:5px;">El anuncio de video/banner se cargará aquí automáticamente.</span>
-                </div>
-                
-                <button id="btn-descargar" class="btn-action" disabled>Espera 10s...</button>
+        <div class="ads-section" id="seccion-anuncio">
+            <div class="status-text" id="texto-estado">¡Procesamiento completo con éxito!</div>
+            
+            <!-- ZONA DE PUBLICIDAD -->
+            <div class="ad-box">
+                <strong>[Espacio Publicitario Reservado para Google AdSense]</strong><br>
+                <span style="font-size: 12px; display:block; margin-top:5px;">El anuncio de video/banner se cargará aquí automáticamente.</span>
             </div>
+            
+            <button id="btn-descargar" class="btn-action" disabled>Espera 10s...</button>
         </div>
 
     </div>
@@ -99,7 +97,7 @@
         let urlDescargaServidor = "";
         let modoActual = "mejorar";
 
-        // Cambio de pestañas fluido
+        // Cambio de pestañas fluido y corregido
         function switchTab(tab) {
             modoActual = tab;
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -110,81 +108,79 @@
             document.getElementById('seccion-anuncio').style.display = 'none';
         }
 
+        // Corrección en la lectura del nombre del archivo cargado
         function updateLabel(tipo) {
             let input = document.getElementById(`input-${tipo}`);
             let label = document.getElementById(`label-${tipo}`);
-            if(input.files.length > 0) {
+            if(input.files && input.files.length > 0) {
                 label.innerText = `✅ Archivo: ${input.files[0].name}`;
                 label.style.borderColor = "#34d399";
                 label.style.color = "#34d399";
             }
         }
 
-        // CONTROLADOR DE LA HERRAMIENTA 1: SERVIDOR EN RENDER
+        // CONTROLADOR DE MEJORA (CON FIX PARA APENDICE DE ARCHIVO)
         async function procesarMejora() {
-            let archivo = document.getElementById('input-mejorar').files[0];
-            if(!archivo) return alert("Por favor, selecciona una foto primero.");
+            let inputElement = document.getElementById('input-mejorar');
+            if(!inputElement.files || inputElement.files.length === 0) return alert("Por favor, selecciona una foto primero.");
 
             let data = new FormData();
-            data.append("foto", archivo);
+            data.append("foto", inputElement.files[0]); // FIX: Tomar el primer archivo de la lista
 
             document.getElementById('texto-estado').innerText = "Procesando en el servidor...";
             document.getElementById('seccion-anuncio').style.display = 'block';
 
-            let res = await fetch('/procesar', { method: 'POST', body: data });
-            let json = await res.json();
+            try {
+                let res = await fetch('/procesar', { method: 'POST', body: data });
+                let json = await res.json();
 
-            if(json.descarga_url) {
-                urlDescargaServidor = json.descarga_url;
-                blobDescargaLocal = null; // Usamos el del servidor
-                arrancarTemporizadorAnuncio();
-            } else {
-                alert("Hubo un error al procesar.");
+                if(json.descarga_url) {
+                    urlDescargaServidor = json.descarga_url;
+                    blobDescargaLocal = null;
+                    arrancarTemporizadorAnuncio();
+                } else {
+                    alert("Hubo un error al procesar la imagen en el servidor.");
+                    document.getElementById('seccion-anuncio').style.display = 'none';
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Error de conexión con el servidor.");
                 document.getElementById('seccion-anuncio').style.display = 'none';
             }
         }
 
-        // CONTROLADOR DE LA HERRAMIENTA 2: LÓGICA DE WEBASSEMBLY (100% GRATIS)
+        // CONTROLADOR WEBASSEMBLY HEIC (CON CORRECCIÓN DE INDICES)
         async function procesarHeicWasm() {
-            let archivo = document.getElementById('input-heic').files[0];
-            if(!archivo) return alert("Por favor, selecciona un archivo .heic primero.");
+            let inputElement = document.getElementById('input-heic');
+            if(!inputElement.files || inputElement.files.length === 0) return alert("Por favor, selecciona un archivo .heic primero.");
 
             let botonConvertir = document.getElementById('btn-convertir-heic');
             botonConvertir.innerText = "⏳ Decodificando WebAssembly...";
             botonConvertir.disabled = true;
 
             try {
-                // LLAMADA A WEBASSEMBLY: Convierte el buffer binario localmente sin usar internet
+                // LLAMADA A WEBASSEMBLY LOCAL
                 let blobJpg = await heic2any({
-                    blob: archivo,
+                    blob: inputElement.files[0], // FIX: Tomar el primer archivo de la lista
                     toType: "image/jpeg",
                     quality: 0.9
                 });
 
                 blobDescargaLocal = blobJpg;
-                urlDescargaServidor = ""; // Usamos el local
+                urlDescargaServidor = "";
 
                 document.getElementById('texto-estado').innerText = "¡Conversión WebAssembly Completada!";
                 document.getElementById('seccion-anuncio').style.display = 'block';
                 arrancarTemporizadorAnuncio();
             } catch (error) {
                 console.error(error);
-                alert("Error al decodificar el archivo HEIC. Asegúrate de que sea un formato válido.");
+                alert("Error al decodificar el archivo HEIC. Asegúrate de que sea un formato de Apple válido.");
             } finally {
                 botonConvertir.innerText = "Convertir a JPG al Instante";
                 botonConvertir.disabled = false;
             }
         }
 
-        // TEMPORIZADOR DEL NEGOCIO (MONETIZACIÓN POR PUBLICIDAD)
+        // TEMPORIZADOR DEL NEGOCIO
         function arrancarTemporizadorAnuncio() {
             let tiempoRestante = 10;
-            let boton = document.getElementById('btn-descargar');
-            boton.setAttribute('disabled', 'true');
-            boton.innerText = `Espera ${tiempoRestante}s...`;
-
-            let cuentaRegresiva = setInterval(() => {
-                tiempoRestante--;
-                boton.innerText = `Espera ${tiempoRestante}s...`;
-
-                if(tiempoRestante <= 0) {
