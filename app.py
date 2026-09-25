@@ -13,7 +13,10 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def borrar_archivo_automatico(ruta, delay=300):
     time.sleep(delay)
     if os.path.exists(ruta):
-        os.remove(ruta)
+        try:
+            os.remove(ruta)
+        except:
+            pass
 
 @app.route('/')
 def inicio():
@@ -37,23 +40,29 @@ def procesar():
         return jsonify({'error': 'Imagen inválida'}), 400
         
     try:
-        # 2. TU TEORÍA: Multiplicar los píxeles reales al doble usando interpolación Lanczos4 (Alta calidad)
+        # OPTIMIZACIÓN RENDERS: Si la imagen es gigantesca (> 2000px), redimensionarla antes para evitar error de memoria RAM
         alto, ancho = img.shape[:2]
+        if max(alto, ancho) > 2500:
+            escala = 2500 / max(alto, ancho)
+            img = cv2.resize(img, (int(ancho * escala), int(alto * escala)), interpolation=cv2.INTER_AREA)
+            alto, ancho = img.shape[:2]
+
+        # 2. Duplicar píxeles con interpolación Lanczos4
         img_gigante = cv2.resize(img, (ancho * 2, alto * 2), interpolation=cv2.INTER_LANCZOS4)
         
-        # 3. FILTRO DE REDUCCIÓN DE RUIDO (Limpia el pixelado en la foto grande)
+        # 3. Filtro de reducción de ruido
         img_suave = cv2.GaussianBlur(img_gigante, (3, 3), 0)
         
-        # 4. ENFOQUE DIGITAL AVANZADO (MÁSCARA DE NITIDEZ)
-        # Hace que los bordes estirados se vean perfectamente definidos y no borrosos
+        # 4. Enfoque digital avanzado (Máscara de nitidez)
         resultado = cv2.addWeighted(img_gigante, 1.6, img_suave, -0.6, 0)
         
-        # Guardar resultado final en HD real
+        # Guardar resultado final
         cv2.imwrite(ruta_mejorada, resultado)
     except Exception as e:
         print(f"Error al procesar: {e}")
         return jsonify({'error': 'Fallo al optimizar la imagen'}), 500
 
+    # Eliminar archivos en segundo plano pasado un tiempo
     threading.Thread(target=borrar_archivo_automatico, args=(ruta_original,)).start()
     threading.Thread(target=borrar_archivo_automatico, args=(ruta_mejorada,)).start()
 
@@ -61,7 +70,10 @@ def procesar():
 
 @app.route('/descargar/<filename>')
 def descargar(filename):
-    return send_file(os.path.join(UPLOAD_FOLDER, filename), as_attachment=True)
+    ruta_archivo = os.path.join(UPLOAD_FOLDER, filename)
+    if os.path.exists(ruta_archivo):
+        return send_file(ruta_archivo, as_attachment=True)
+    return "El archivo ya expiró o no existe.", 404
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
