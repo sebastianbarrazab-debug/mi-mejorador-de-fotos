@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>iLoveFotos - Herramientas de Imagen Online Gratis</title>
-    <meta name="description" content="Mejora la calidad de tus fotos y convierte archivos HEIC de iPhone a JPG online y gratis con tecnología WebAssembly ultrarrápida.">
+    <meta name="description" content="Mejora la calidad de tus fotos y convierte archivos HEIC de iPhone a JPG online y gratis de forma local.">
     
     <!-- CARGA DE BIBLIOTECA WEBASSEMBLY (libheif/libde265 adaptada en WASM) -->
     <script src="https://jsdelivr.net"></script>
@@ -77,7 +77,7 @@
             </div>
         </div>
 
-        <!-- BLOQUE CENTRAL DE MONETIZACIÓN -->
+        <!-- BLOQUE CENTRAL DE MONETIZACIÓN (COMPARTIDO) -->
         <div class="ads-section" id="seccion-anuncio">
             <div class="status-text" id="texto-estado">¡Procesamiento completo con éxito!</div>
             
@@ -108,24 +108,26 @@
             document.getElementById('seccion-anuncio').style.display = 'none';
         }
 
-        // Corrección de sintaxis en lectura de archivos (.files[0].name)
+        // Actualización de texto corregida para evitar fallos del navegador
         function updateLabel(tipo) {
             let input = document.getElementById(`input-${tipo}`);
             let label = document.getElementById(`label-${tipo}`);
-            if(input.files && input.files.length > 0) {
-                label.innerText = `✅ Archivo: ${input.files[0].name}`;
+            if (input && input.files && input.files[0]) {
+                label.innerText = "✅ Archivo seleccionado: " + input.files[0].name;
                 label.style.borderColor = "#34d399";
                 label.style.color = "#34d399";
             }
         }
 
-        // Controlador de mejora con fix de FormData (.files[0])
+        // Procesador de mejora corregido con índices válidos
         async function procesarMejora() {
             let inputElement = document.getElementById('input-mejorar');
-            if(!inputElement.files || inputElement.files.length === 0) return alert("Por favor, selecciona una foto primero.");
+            if (!inputElement || !inputElement.files || !inputElement.files[0]) {
+                return alert("Por favor, selecciona una foto primero.");
+            }
 
             let data = new FormData();
-            data.append("foto", inputElement.files[0]); // Corrección clave: pasamos el archivo real, no la lista
+            data.append("foto", inputElement.files[0]); // SOLUCIÓN: Agregado [0] para enviar el archivo binario real
 
             document.getElementById('texto-estado').innerText = "Procesando en el servidor...";
             document.getElementById('seccion-anuncio').style.display = 'block';
@@ -134,7 +136,7 @@
                 let res = await fetch('/procesar', { method: 'POST', body: data });
                 let json = await res.json();
 
-                if(json.descarga_url) {
+                if (json.descarga_url) {
                     urlDescargaServidor = json.descarga_url;
                     blobDescargaLocal = null;
                     arrancarTemporizadorAnuncio();
@@ -149,19 +151,21 @@
             }
         }
 
-        // Controlador WebAssembly con fix de parámetro (.files[0])
+        // Procesador WebAssembly corregido con índices válidos
         async function procesarHeicWasm() {
             let inputElement = document.getElementById('input-heic');
-            if(!inputElement.files || inputElement.files.length === 0) return alert("Por favor, selecciona un archivo .heic primero.");
+            if (!inputElement || !inputElement.files || !inputElement.files[0]) {
+                return alert("Por favor, selecciona un archivo .heic primero.");
+            }
 
             let botonConvertir = document.getElementById('btn-convertir-heic');
             botonConvertir.innerText = "⏳ Decodificando WebAssembly...";
             botonConvertir.disabled = true;
 
             try {
-                // LLAMADA A WEBASSEMBLY LOCAL CON EL ARCHIVO CORRECTO
+                // SOLUCIÓN: Pasamos el blob del archivo individual [0] a WebAssembly
                 let blobJpg = await heic2any({
-                    blob: inputElement.files[0], // Corrección clave: extraemos el blob del archivo
+                    blob: inputElement.files[0],
                     toType: "image/jpeg",
                     quality: 0.9
                 });
@@ -181,6 +185,5 @@
             }
         }
 
-        // Temporizador de descarga
+        // Temporizador de descarga estable
         function arrancarTemporizadorAnuncio() {
-            let tiempoRestante = 10;
