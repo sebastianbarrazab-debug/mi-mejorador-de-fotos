@@ -77,7 +77,7 @@
             </div>
         </div>
 
-        <!-- BLOQUE CENTRAL DE MONETIZACIÓN (COMPARTIDO) -->
+        <!-- BLOQUE CENTRAL DE MONETIZACIÓN -->
         <div class="ads-section" id="seccion-anuncio">
             <div class="status-text" id="texto-estado">¡Procesamiento completo con éxito!</div>
             
@@ -97,7 +97,7 @@
         let urlDescargaServidor = "";
         let modoActual = "mejorar";
 
-        // Cambio de pestañas fluido y corregido
+        // Cambio de pestañas fluido
         function switchTab(tab) {
             modoActual = tab;
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -108,7 +108,7 @@
             document.getElementById('seccion-anuncio').style.display = 'none';
         }
 
-        // Corrección en la lectura del nombre del archivo cargado
+        // Corrección de sintaxis en lectura de archivos (.files[0].name)
         function updateLabel(tipo) {
             let input = document.getElementById(`input-${tipo}`);
             let label = document.getElementById(`label-${tipo}`);
@@ -119,13 +119,13 @@
             }
         }
 
-        // CONTROLADOR DE MEJORA (CON FIX PARA APENDICE DE ARCHIVO)
+        // Controlador de mejora con fix de FormData (.files[0])
         async function procesarMejora() {
             let inputElement = document.getElementById('input-mejorar');
             if(!inputElement.files || inputElement.files.length === 0) return alert("Por favor, selecciona una foto primero.");
 
             let data = new FormData();
-            data.append("foto", inputElement.files[0]); // FIX: Tomar el primer archivo de la lista
+            data.append("foto", inputElement.files[0]); // Corrección clave: pasamos el archivo real, no la lista
 
             document.getElementById('texto-estado').innerText = "Procesando en el servidor...";
             document.getElementById('seccion-anuncio').style.display = 'block';
@@ -149,7 +149,7 @@
             }
         }
 
-        // CONTROLADOR WEBASSEMBLY HEIC (CON CORRECCIÓN DE INDICES)
+        // Controlador WebAssembly con fix de parámetro (.files[0])
         async function procesarHeicWasm() {
             let inputElement = document.getElementById('input-heic');
             if(!inputElement.files || inputElement.files.length === 0) return alert("Por favor, selecciona un archivo .heic primero.");
@@ -159,9 +159,9 @@
             botonConvertir.disabled = true;
 
             try {
-                // LLAMADA A WEBASSEMBLY LOCAL
+                // LLAMADA A WEBASSEMBLY LOCAL CON EL ARCHIVO CORRECTO
                 let blobJpg = await heic2any({
-                    blob: inputElement.files[0], // FIX: Tomar el primer archivo de la lista
+                    blob: inputElement.files[0], // Corrección clave: extraemos el blob del archivo
                     toType: "image/jpeg",
                     quality: 0.9
                 });
@@ -181,6 +181,6 @@
             }
         }
 
-        // TEMPORIZADOR DEL NEGOCIO
+        // Temporizador de descarga
         function arrancarTemporizadorAnuncio() {
             let tiempoRestante = 10;
