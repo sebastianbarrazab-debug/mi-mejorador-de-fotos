@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iLoveFotos - Borrador IA para Superficies Complejas y Ramas</title>
+    <title>iLoveFotos - Borrador y Eliminador de Fondo IA</title>
     
     <!-- LIBRERÍAS EXTERNAS INTACTAS -->
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
@@ -21,38 +21,47 @@
         .nav-links button.active, .nav-links button:hover { color: #3b82f6; background: #1e293b; }
         
         .container { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; }
-        .tab-content { display: none; width: 100%; max-width: 650px; }
+        .tab-content { display: none; width: 100%; max-width: 680px; }
         .tab-content.active { display: block; }
         
-        .card { background: #111827; padding: 30px; border-radius: 16px; border: 1px solid #1f2937; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); text-align: center; margin-bottom: 20px; position: relative; }
+        .card { background: #111827; padding: 25px; border-radius: 16px; border: 1px solid #1f2937; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); text-align: center; margin-bottom: 20px; position: relative; }
         h2 { margin-top: 0; color: #f8fafc; font-size: 24px; }
         p { color: #94a3b8; font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
         
         input[type="file"] { display: none; }
-        .file-label { display: block; background: #1e293b; border: 2px dashed #3b82f6; padding: 25px 20px; border-radius: 10px; cursor: pointer; transition: 0.2s; color: #3b82f6; font-weight: 600; margin-bottom: 20px; word-break: break-all; }
+        .file-label { display: block; background: #1e293b; border: 2px dashed #3b82f6; padding: 22px 20px; border-radius: 10px; cursor: pointer; transition: 0.2s; color: #3b82f6; font-weight: 600; margin-bottom: 20px; word-break: break-all; }
         .file-label:hover { background: #1e293b; border-color: #60a5fa; color: #60a5fa; }
         
         .selector-formato { width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid #374151; font-size: 15px; cursor: pointer; }
         
         .btn-action { background: #2563eb; color: white; padding: 14px 28px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; box-shadow: 0 4px 6px -1px rgba(37,99,235,0.4); margin-bottom: 10px; }
         .btn-action:hover { background: #1d4ed8; }
-        .btn-secondary { background: #374151; box-shadow: none; color: #cbd5e1; }
-        .btn-secondary:hover { background: #4b5563; }
         
-        .ads-section { display: none; width: 100%; max-width: 650px; padding: 20px; background: #1e293b; border-radius: 12px; border: 1px solid #374151; box-sizing: border-box; }
+        /* PINCEL Y CONTROLES ESTILO CANVA / REMOVE.BG */
+        .editor-panel { background: #1e293b; border-radius: 12px; padding: 18px; margin-bottom: 20px; border: 1px solid #374151; display: flex; flex-direction: column; gap: 15px; text-align: left; }
+        
+        .mode-selector { display: flex; gap: 10px; justify-content: center; }
+        .btn-mode { flex: 1; padding: 12px; border: 2px solid #3b82f6; background: transparent; color: #f1f5f9; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
+        .btn-mode.active { background: #2563eb; color: white; }
+
+        .control-row { display: flex; align-items: center; justify-content: space-between; gap: 15px; font-size: 14px; color: #cbd5e1; }
+        
+        /* Toggle Switch para Pincel Mágico */
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider-switch { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #475569; transition: .3s; border-radius: 24px; }
+        .slider-switch:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider-switch { background-color: #2563eb; }
+        input:checked + .slider-switch:before { transform: translateX(20px); }
+
+        /* Contenedor Canvas con fondo transparente (Ajedrez) */
+        .canvas-wrapper { position: relative; width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid #374151; display: flex; justify-content: center; align-items: center; background-color: #1a1a1a; background-image: linear-gradient(45deg, #262626 25%, transparent 25%), linear-gradient(-45deg, #262626 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #262626 75%), linear-gradient(-45deg, transparent 75%, #262626 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; }
+        #canvas-editor { display: block; max-width: 100%; cursor: crosshair; touch-action: none; }
+
+        .ads-section { display: none; width: 100%; max-width: 680px; padding: 20px; background: #1e293b; border-radius: 12px; border: 1px solid #374151; box-sizing: border-box; }
         .status-text { color: #34d399; font-weight: 600; margin-bottom: 10px; }
-        
         .img-container { width: 100%; max-height: 400px; margin-bottom: 20px; display: none; background: #000; border-radius: 8px; overflow: hidden; }
         .img-container img { max-width: 100%; display: block; }
-
-        .editor-toolbar { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; gap: 10px; flex-wrap: wrap; }
-        .toolbar-group { display: flex; align-items: center; gap: 8px; }
-        .icon-btn { background: #334155; color: #f1f5f9; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 5px; transition: 0.2s; }
-        .icon-btn:hover { background: #475569; }
-        .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-        #confirm-modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 15, 25, 0.88); backdrop-filter: blur(5px); z-index: 100; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; border-radius: 16px; }
-        .modal-card { background: #1e293b; border: 1px solid #475569; padding: 25px; border-radius: 12px; max-width: 380px; width: 100%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.7); }
     </style>
 </head>
 <body>
@@ -60,7 +69,7 @@
     <nav class="navbar">
         <a href="#" class="logo">iLove<span>Fotos</span></a>
         <div class="nav-links">
-            <button id="nav-borrador" class="active" onclick="switchTab('borrador')">🪄 Borrador Híbrido IA</button>
+            <button id="nav-borrador" class="active" onclick="switchTab('borrador')">✂️ Eliminar Fondo y Borrador</button>
             <button id="nav-pdf" onclick="switchTab('pdf')">📑 PDF</button>
             <button id="nav-comprimir" onclick="switchTab('comprimir')">🗜️ Comprimir</button>
             <button id="nav-convertir" onclick="switchTab('convertir')">🔄 Convertir</button>
@@ -70,58 +79,69 @@
 
     <div class="container">
         
-        <!-- BORRADOR HÍBRIDO CON SEGMENTACIÓN AVANZADA DE SUPERFICIES FINAS -->
+        <!-- BORRADOR Y REMOVE.BG CON PINCEL MÁGICO Y RESTAURACIÓN -->
         <div id="tab-borrador" class="tab-content active">
             <div class="card">
-                <h2>Borrador IA Inteligente</h2>
-                <p>Marca solo una parte del objeto (como el tronco de un árbol). La IA usará tu trazo como guía para encontrar y expandir la selección por todo el objeto automáticamente.</p>
+                <h2>Eliminador de Fondo y Pincel Inteligente</h2>
+                <p>Elimina el fondo de tu foto automáticamente o usa el pincel mágico para borrar partes específicas de forma inteligente sin rellenar nada.</p>
+                
                 <label for="input-borrador" class="file-label" id="label-borrador">📁 Seleccionar foto</label>
-                <input type="file" id="input-borrador" accept="image/*" onchange="prepararBorrador(event)">
+                <input type="file" id="input-borrador" accept="image/*" onchange="prepararImagen(event)">
                 
                 <div id="herramientas-borrador" style="display:none;">
                     
-                    <div class="editor-toolbar">
-                        <div class="toolbar-group">
-                            <button class="icon-btn" id="btn-undo" onclick="deshacerAccion()" title="Deshacer última acción" disabled>
+                    <button class="btn-action" style="background: #059669; margin-bottom: 15px;" onclick="eliminarFondoAuto()">
+                        🪄 Eliminar Fondo Automáticamente (Estilo Remove.bg)
+                    </button>
+
+                    <div class="editor-panel">
+                        <!-- Botones Borrar / Restaurar -->
+                        <div class="mode-selector">
+                            <button id="btn-modo-borrar" class="btn-mode active" onclick="setModo('borrar')">
+                                ⊖ Borrar
+                            </button>
+                            <button id="btn-modo-restaurar" class="btn-mode" onclick="setModo('restaurar')">
+                                ⊕ Restaurar
+                            </button>
+                        </div>
+
+                        <!-- Tamaño del Pincel -->
+                        <div class="control-row">
+                            <label for="brush-size">Tamaño del pincel:</label>
+                            <input type="range" id="brush-size" min="5" max="100" value="25" style="width: 50%;">
+                        </div>
+
+                        <!-- Switch Pincel Mágico -->
+                        <div class="control-row">
+                            <span>🪄 Pincel Mágico (IA Inteligente)</span>
+                            <label class="switch">
+                                <input type="checkbox" id="toggle-pincel-magico" checked>
+                                <span class="slider-switch"></span>
+                            </label>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                            <button class="btn-mode" style="padding: 6px 12px; font-size: 13px; border-color: #475569;" id="btn-undo" onclick="deshacerAccion()" disabled>
                                 ↩️ Deshacer
                             </button>
-                        </div>
-                        <div class="toolbar-group">
-                            <label style="font-size: 13px; color: #94a3b8;">Grosor:</label>
-                            <input type="range" id="brush-size" min="4" max="50" value="16" style="width: 80px;">
-                        </div>
-                        <div class="toolbar-group">
-                            <button class="icon-btn" style="background: #2563eb;" onclick="analizarEstelaConIA()">
-                                🤖 IA Auto-Expandir y Segmentar
-                            </button>
+                            <span style="font-size: 12px; color: #94a3b8;">El pincel mágico borra solo el color dominante del trazo</span>
                         </div>
                     </div>
 
-                    <div style="position: relative; background: #000; border-radius: 8px; border: 1px solid #374151; overflow: hidden; display: flex; justify-content: center; align-items: center;">
-                        <canvas id="canvas-borrador" style="cursor: crosshair; max-width: 100%; touch-action: none; display: block;"></canvas>
-                        
-                        <div id="confirm-modal">
-                            <div class="modal-card">
-                                <h3 style="margin-top: 0; color: #f8fafc; font-size: 18px;">¿Eliminar esta selección?</h3>
-                                <p style="color: #cbd5e1; font-size: 13px; margin-bottom: 20px;">
-                                    La IA se expandió y delimitó el objeto en <strong style="color:#fbbf24;">amarillo</strong>. ¿Deseas borrarlo rellenando el fondo?
-                                </p>
-                                <button class="btn-action" style="margin-bottom: 8px; padding: 10px;" onclick="ejecutarEliminacionIA()">Sí, eliminar y rellenar</button>
-                                <button class="btn-action btn-secondary" style="margin-bottom: 0; padding: 10px;" onclick="cancelarEliminacion()">Cancelar trazo</button>
-                            </div>
-                        </div>
+                    <div class="canvas-wrapper">
+                        <canvas id="canvas-editor"></canvas>
                     </div>
                     
-                    <button class="btn-action" style="margin-top: 20px;" onclick="guardarResultadoFinal()">📥 Descargar Imagen Editada</button>
+                    <button class="btn-action" style="margin-top: 20px;" onclick="guardarResultadoFinal()">📥 Descargar Imagen PNG Transparente</button>
                 </div>
             </div>
         </div>
 
-        <!-- HERRAMIENTA: UNIR Y DIVIDIR PDF INTACTA -->
+        <!-- HERRAMIENTAS SECUNDARIAS TOTALMENTE INTACTAS -->
         <div id="tab-pdf" class="tab-content">
             <div class="card">
                 <h2>Unir y Dividir PDF</h2>
-                <p>Fusiona varios archivos en uno solo o extrae páginas de manera 100% segura y local.</p>
+                <p>Fusiona varios archivos en uno solo o extrae páginas de manera 100% segura.</p>
                 <select id="modo-pdf" class="selector-formato" onchange="cambiarModoPdf()">
                     <option value="unir">Unir varios archivos PDF</option>
                     <option value="dividir">Extraer una página de un PDF</option>
@@ -142,25 +162,23 @@
             </div>
         </div>
 
-        <!-- HERRAMIENTA: COMPRIMIR INTACTA -->
         <div id="tab-comprimir" class="tab-content">
             <div class="card">
                 <h2>Comprimir Imagen</h2>
-                <p>Reduce drásticamente el peso de tu foto (KB/MB) manteniendo la misma extensión.</p>
+                <p>Reduce drásticamente el peso de tu foto (KB/MB) manteniendo la calidad.</p>
                 <label for="input-comprimir" class="file-label" id="label-comprimir">📁 Seleccionar foto</label>
                 <input type="file" id="input-comprimir" accept="image/jpeg, image/png, image/webp" onchange="updateLabel('comprimir')">
                 <button class="btn-action" onclick="procesarCompresion()">Comprimir Ahora</button>
             </div>
         </div>
 
-        <!-- HERRAMIENTA: CONVERTIR INTACTA -->
         <div id="tab-convertir" class="tab-content">
             <div class="card">
                 <h2>Convertir Formato</h2>
                 <p>Cambia la extensión de tu imagen de manera instantánea.</p>
                 <select id="formato-salida" class="selector-formato">
+                    <option value="image/png">Convertir a PNG (Transparencia)</option>
                     <option value="image/jpeg">Convertir a JPG</option>
-                    <option value="image/png">Convertir a PNG</option>
                     <option value="image/webp">Convertir a WebP</option>
                 </select>
                 <label for="input-convertir" class="file-label" id="label-convertir">📁 Seleccionar foto</label>
@@ -169,11 +187,10 @@
             </div>
         </div>
 
-        <!-- HERRAMIENTA: RECORTAR INTACTA -->
         <div id="tab-recortar" class="tab-content">
             <div class="card">
                 <h2>Recortar Imagen</h2>
-                <p>Ajusta las dimensiones, corta bordes o centra el objetivo de tu fotografía.</p>
+                <p>Ajusta las dimensiones o recorta los bordes de tu imagen.</p>
                 <label for="input-recortar" class="file-label" id="label-recortar">📁 Seleccionar foto</label>
                 <input type="file" id="input-recortar" accept="image/*" onchange="prepararRecortar(event)">
                 <div class="img-container" id="cropper-container">
@@ -231,341 +248,229 @@
         }
 
         // =========================================================================
-        // MOTOR IA DE EXPANSIÓN DE REGIONES (FLOOD FILL) Y RELLENO CONTENT-AWARE
+        // MOTOR DE TRANSPARENCIA, PINCEL MÁGICO INTELIGENTE Y RESTAURACIÓN
         // =========================================================================
-        let canvasBorrador = document.getElementById('canvas-borrador');
-        let ctxBorrador = canvasBorrador.getContext('2d', { willReadFrequently: true });
+        let canvas = document.getElementById('canvas-editor');
+        let ctx = canvas.getContext('2d', { willReadFrequently: true });
         
-        let imagenBaseOriginal = new Image();
-        let historialEstados = []; 
+        let canvasOriginal = document.createElement('canvas');
+        let ctxOriginal = canvasOriginal.getContext('2d', { willReadFrequently: true });
+
+        let modoActual = 'borrar'; // 'borrar' o 'restaurar'
         let isDrawing = false;
-        let mascaraCalculadaIA = null; 
+        let historialEstados = [];
+        let currentStrokePixels = []; // Puntos trazados durante un arrastre
+
+        function setModo(modo) {
+            modoActual = modo;
+            document.getElementById('btn-modo-borrar').classList.toggle('active', modo === 'borrar');
+            document.getElementById('btn-modo-restaurar').classList.toggle('active', modo === 'restaurar');
+        }
 
         function guardarEstadoHistorial() {
-            if (canvasBorrador.width === 0) return;
-            historialEstados.push(canvasBorrador.toDataURL());
-            if (historialEstados.length > 20) historialEstados.shift();
+            if (canvas.width === 0) return;
+            let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            historialEstados.push(imgData);
+            if (historialEstados.length > 25) historialEstados.shift();
             document.getElementById('btn-undo').disabled = historialEstados.length <= 1;
         }
 
         function deshacerAccion() {
             if (historialEstados.length <= 1) return;
-            historialEstados.pop(); // Descarta actual
-            let estadoAnteriorUrl = historialEstados[historialEstados.length - 1];
-            let imgPrev = new Image();
-            imgPrev.onload = function() {
-                ctxBorrador.clearRect(0, 0, canvasBorrador.width, canvasBorrador.height);
-                ctxBorrador.drawImage(imgPrev, 0, 0);
-                document.getElementById('btn-undo').disabled = historialEstados.length <= 1;
-            };
-            imgPrev.src = estadoAnteriorUrl;
+            historialEstados.pop(); // Elimina el estado actual
+            let estadoAnterior = historialEstados[historialEstados.length - 1];
+            ctx.putImageData(estadoAnterior, 0, 0);
+            document.getElementById('btn-undo').disabled = historialEstados.length <= 1;
         }
 
-        function prepararBorrador(event) {
+        function prepararImagen(event) {
             let file = event.target.files[0];
             if (!file) return;
             document.getElementById('label-borrador').innerText = "✅ " + file.name;
             document.getElementById('label-borrador').style.borderColor = "#34d399";
             document.getElementById('label-borrador').style.color = "#34d399";
 
+            let img = new Image();
             let reader = new FileReader();
             reader.onload = function(e) {
-                imagenBaseOriginal.onload = function() {
-                    let maxWidth = window.innerWidth > 700 ? 600 : window.innerWidth - 50;
-                    let scale = 1;
-                    if (imagenBaseOriginal.width > maxWidth) scale = maxWidth / imagenBaseOriginal.width;
+                img.onload = function() {
+                    let maxWidth = window.innerWidth > 700 ? 640 : window.innerWidth - 50;
+                    let scale = img.width > maxWidth ? maxWidth / img.width : 1;
                     
-                    canvasBorrador.width = Math.floor(imagenBaseOriginal.width * scale);
-                    canvasBorrador.height = Math.floor(imagenBaseOriginal.height * scale);
-                    
-                    ctxBorrador.drawImage(imagenBaseOriginal, 0, 0, canvasBorrador.width, canvasBorrador.height);
+                    canvas.width = Math.floor(img.width * scale);
+                    canvas.height = Math.floor(img.height * scale);
+                    canvasOriginal.width = canvas.width;
+                    canvasOriginal.height = canvas.height;
+
+                    ctxOriginal.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
                     historialEstados = [];
                     guardarEstadoHistorial();
                     document.getElementById('herramientas-borrador').style.display = 'block';
-                }
-                imagenBaseOriginal.src = e.target.result;
-            }
+                };
+                img.src = e.target.result;
+            };
             reader.readAsDataURL(file);
         }
 
-        // Trazado de guía roja
+        // --- AUTOMÁTICO REMOVE.BG (Eliminación de Fondo por Análisis de Bordes) ---
+        function eliminarFondoAuto() {
+            let width = canvas.width;
+            let height = canvas.height;
+            let imgData = ctx.getImageData(0, 0, width, height);
+            let data = imgData.data;
+
+            // Recolectar colores del marco de la imagen (fondo común)
+            let bgSamples = [];
+            for (let x = 0; x < width; x += 4) {
+                bgSamples.push(getPixelRGBA(data, x, 0, width));
+                bgSamples.push(getPixelRGBA(data, x, height - 1, width));
+            }
+            for (let y = 0; y < height; y += 4) {
+                bgSamples.push(getPixelRGBA(data, 0, y, width));
+                bgSamples.push(getPixelRGBA(data, width - 1, y, width));
+            }
+
+            // Calcular color promedio de fondo
+            let avgBg = { r: 0, g: 0, b: 0 };
+            bgSamples.forEach(c => { avgBg.r += c.r; avgBg.g += c.g; avgBg.b += c.b; });
+            avgBg.r /= bgSamples.length;
+            avgBg.g /= bgSamples.length;
+            avgBg.b /= bgSamples.length;
+
+            // Eliminar píxeles con tolerancia basada en el fondo
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i], g = data[i+1], b = data[i+2];
+                let dist = colorDist(r, g, b, avgBg.r, avgBg.g, avgBg.b);
+                if (dist < 55) {
+                    data[i + 3] = 0; // Transparente
+                }
+            }
+
+            ctx.putImageData(imgData, 0, 0);
+            guardarEstadoHistorial();
+        }
+
+        // --- MANEJO DEL PINCEL Y PINCEL MÁGICO ---
         function getPointerPos(e) {
-            let rect = canvasBorrador.getBoundingClientRect();
+            let rect = canvas.getBoundingClientRect();
             let clientX = e.clientX || (e.touches && e.touches[0].clientX);
             let clientY = e.clientY || (e.touches && e.touches[0].clientY);
             return {
-                x: Math.floor((clientX - rect.left) * (canvasBorrador.width / rect.width)),
-                y: Math.floor((clientY - rect.top) * (canvasBorrador.height / rect.height))
+                x: Math.floor((clientX - rect.left) * (canvas.width / rect.width)),
+                y: Math.floor((clientY - rect.top) * (canvas.height / rect.height))
             };
         }
 
         function startDrawing(e) {
             isDrawing = true;
+            currentStrokePixels = [];
             let pos = getPointerPos(e);
-            ctxBorrador.beginPath();
-            ctxBorrador.moveTo(pos.x, pos.y);
+            currentStrokePixels.push(pos);
+            aplicarTrazoPincel(pos);
         }
 
         function draw(e) {
             if (!isDrawing) return;
             e.preventDefault();
             let pos = getPointerPos(e);
-            let brushSize = document.getElementById('brush-size').value;
-            
-            ctxBorrador.strokeStyle = "rgba(239, 68, 68, 0.85)"; 
-            ctxBorrador.lineWidth = brushSize;
-            ctxBorrador.lineCap = "round";
-            ctxBorrador.lineJoin = "round";
-            ctxBorrador.lineTo(pos.x, pos.y);
-            ctxBorrador.stroke();
+            currentStrokePixels.push(pos);
+            aplicarTrazoPincel(pos);
         }
 
         function stopDrawing() {
             if (!isDrawing) return;
             isDrawing = false;
-            ctxBorrador.beginPath();
-            guardarEstadoHistorial(); 
+            guardarEstadoHistorial();
         }
 
-        canvasBorrador.addEventListener('mousedown', startDrawing);
-        canvasBorrador.addEventListener('mousemove', draw);
-        canvasBorrador.addEventListener('mouseup', stopDrawing);
-        canvasBorrador.addEventListener('mouseleave', stopDrawing);
-        canvasBorrador.addEventListener('touchstart', startDrawing, {passive: false});
-        canvasBorrador.addEventListener('touchmove', draw, {passive: false});
-        canvasBorrador.addEventListener('touchend', stopDrawing);
-
-        // Distancia perceptual RGB
-        function colorDistanceSq(r1, g1, b1, r2, g2, b2) {
-            let dr = r1 - r2, dg = g1 - g2, db = b1 - b2;
-            return 0.299 * dr * dr + 0.587 * dg * dg + 0.114 * db * db;
+        function getPixelRGBA(dataArray, x, y, width) {
+            let idx = (y * width + x) * 4;
+            return { r: dataArray[idx], g: dataArray[idx+1], b: dataArray[idx+2], a: dataArray[idx+3] };
         }
 
-        // Extractor de Paletas por K-Means
-        function extractColorClusters(samples, k) {
-            if (samples.length === 0) return [];
-            let clusters = [];
-            for (let i = 0; i < k; i++) {
-                let idx = Math.floor((i / k) * samples.length);
-                clusters.push({ r: samples[idx][0], g: samples[idx][1], b: samples[idx][2] });
-            }
-            for (let iter = 0; iter < 4; iter++) {
-                let sums = Array(k).fill(0).map(() => ({ r: 0, g: 0, b: 0, count: 0 }));
-                for (let s of samples) {
-                    let minD = Infinity, bestK = 0;
-                    for (let c = 0; c < k; c++) {
-                        let d = colorDistanceSq(s[0], s[1], s[2], clusters[c].r, clusters[c].g, clusters[c].b);
-                        if (d < minD) { minD = d; bestK = c; }
-                    }
-                    sums[bestK].r += s[0]; sums[bestK].g += s[1]; sums[bestK].b += s[2]; sums[bestK].count++;
-                }
-                for (let c = 0; c < k; c++) {
-                    if (sums[c].count > 0) {
-                        clusters[c].r = sums[c].r / sums[c].count;
-                        clusters[c].g = sums[c].g / sums[c].count;
-                        clusters[c].b = sums[c].b / sums[c].count;
-                    }
+        function colorDist(r1, g1, b1, r2, g2, b2) {
+            return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2);
+        }
+
+        function aplicarTrazoPincel(pos) {
+            let radius = parseInt(document.getElementById('brush-size').value);
+            let usarPincelMagico = document.getElementById('toggle-pincel-magico').checked;
+
+            let width = canvas.width;
+            let height = canvas.height;
+            let imgDataCurrent = ctx.getImageData(0, 0, width, height);
+            let dataCurrent = imgDataCurrent.data;
+
+            let imgDataOrig = ctxOriginal.getImageData(0, 0, width, height);
+            let dataOrig = imgDataOrig.data;
+
+            // Determinar color objetivo si el Pincel Mágico está activado
+            let targetColor = null;
+            if (usarPincelMagico) {
+                let sampleSource = modoActual === 'borrar' ? dataCurrent : dataOrig;
+                let sample = getPixelRGBA(sampleSource, pos.x, pos.y, width);
+                if (sample.a > 0 || modoActual === 'restaurar') {
+                    targetColor = sample;
                 }
             }
-            return clusters;
-        }
 
-        // ALGORITMO IA: EXPANSIÓN INTELIGENTE (Flood Fill) A PARTIR DE LA ESTELA
-        function analizarEstelaConIA() {
-            if (historialEstados.length < 2) {
-                alert("Primero dibuja una estela roja sobre parte del objeto para guiar a la IA.");
-                return;
-            }
+            // Bounding box del pincel para rendimiento óptimo
+            let minX = Math.max(0, pos.x - radius);
+            let maxX = Math.min(width - 1, pos.x + radius);
+            let minY = Math.max(0, pos.y - radius);
+            let maxY = Math.min(height - 1, pos.y + radius);
 
-            let width = canvasBorrador.width;
-            let height = canvasBorrador.height;
-            let imgDataRed = ctxBorrador.getImageData(0, 0, width, height).data;
-            let estadoAnteriorUrl = historialEstados[historialEstados.length - 2];
-            let imgOriginalObj = new Image();
-
-            imgOriginalObj.onload = function() {
-                let tempCanvas = document.createElement('canvas');
-                tempCanvas.width = width; tempCanvas.height = height;
-                let tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
-                tempCtx.drawImage(imgOriginalObj, 0, 0);
-                let imgDataOriginal = tempCtx.getImageData(0, 0, width, height).data;
-
-                let strokeMask = new Uint8Array(width * height);
-                let fgSamples = [];
-                let bgSamples = [];
-
-                // 1. Identificar Semilla (Estela) y separar fondo
-                for (let y = 0; y < height; y += 2) {
-                    for (let x = 0; x < width; x += 2) {
+            for (let y = minY; y <= maxY; y++) {
+                for (let x = minX; x <= maxX; x++) {
+                    let dx = x - pos.x;
+                    let dy = y - pos.y;
+                    if (dx * dx + dy * dy <= radius * radius) {
                         let idx = (y * width + x) * 4;
-                        let r = imgDataRed[idx], g = imgDataRed[idx+1], b = imgDataRed[idx+2], a = imgDataRed[idx+3];
-                        
-                        // Si es rojo transparente (Trazo del usuario)
-                        if (a > 100 && r > 180 && g < 90 && b < 90) {
-                            strokeMask[y * width + x] = 1;
-                            fgSamples.push([imgDataOriginal[idx], imgDataOriginal[idx+1], imgDataOriginal[idx+2]]);
+
+                        if (usarPincelMagico && targetColor) {
+                            let currR = modoActual === 'borrar' ? dataCurrent[idx] : dataOrig[idx];
+                            let currG = modoActual === 'borrar' ? dataCurrent[idx+1] : dataOrig[idx+1];
+                            let currB = modoActual === 'borrar' ? dataCurrent[idx+2] : dataOrig[idx+2];
+
+                            let dist = colorDist(currR, currG, currB, targetColor.r, targetColor.g, targetColor.b);
+                            if (dist > 50) continue; // Si es de otro color (p.ej. tocar rojo por error), NO lo toca.
+                        }
+
+                        if (modoActual === 'borrar') {
+                            dataCurrent[idx + 3] = 0; // Se vuelve transparente
                         } else {
-                            // Toma muestras del resto de la imagen para aprender el color del cielo/fondo
-                            if (Math.random() < 0.05) {
-                                bgSamples.push([imgDataOriginal[idx], imgDataOriginal[idx+1], imgDataOriginal[idx+2]]);
-                            }
+                            // Restaurar del original
+                            dataCurrent[idx] = dataOrig[idx];
+                            dataCurrent[idx + 1] = dataOrig[idx + 1];
+                            dataCurrent[idx + 2] = dataOrig[idx + 2];
+                            dataCurrent[idx + 3] = dataOrig[idx + 3];
                         }
                     }
                 }
+            }
 
-                if (fgSamples.length < 5) return alert("Trazo muy pequeño. Marca un poco más.");
-
-                let fgClusters = extractColorClusters(fgSamples, 3); // Aprende color del tronco/hojas
-                let bgClusters = extractColorClusters(bgSamples, 4); // Aprende color del cielo/pasto
-
-                mascaraCalculadaIA = new Uint8Array(width * height);
-                let visited = new Uint8Array(width * height);
-                
-                // Cola para algoritmo Flood Fill hiper rápido
-                let queue = new Int32Array(width * height);
-                let head = 0, tail = 0;
-
-                // Inicializar la expansión desde el trazo del usuario
-                for (let i = 0; i < width * height; i++) {
-                    if (strokeMask[i] === 1) {
-                        queue[tail++] = i;
-                        visited[i] = 1;
-                        mascaraCalculadaIA[i] = 1;
-                    }
-                }
-
-                // 2. Expansión conectada: Trepa por el árbol detectando ramas no pintadas
-                while(head < tail) {
-                    let curr = queue[head++];
-                    let x = curr % width;
-                    let y = Math.floor(curr / width);
-
-                    // 4 Vecinos
-                    let neighbors = [];
-                    if(x > 0) neighbors.push(curr - 1);
-                    if(x < width - 1) neighbors.push(curr + 1);
-                    if(y > 0) neighbors.push(curr - width);
-                    if(y < height - 1) neighbors.push(curr + width);
-
-                    for (let i = 0; i < neighbors.length; i++) {
-                        let n = neighbors[i];
-                        if (visited[n] === 0) {
-                            visited[n] = 1;
-                            let idx = n * 4;
-                            let r = imgDataOriginal[idx], g = imgDataOriginal[idx+1], b = imgDataOriginal[idx+2];
-                            
-                            let minFg = Infinity;
-                            for(let c of fgClusters) {
-                                let d = colorDistanceSq(r, g, b, c.r, c.g, c.b);
-                                if(d < minFg) minFg = d;
-                            }
-                            
-                            let minBg = Infinity;
-                            for(let c of bgClusters) {
-                                let d = colorDistanceSq(r, g, b, c.r, c.g, c.b);
-                                if(d < minBg) minBg = d;
-                            }
-
-                            // Si el píxel vecino se parece más al árbol que al cielo, se añade y la expansión continúa
-                            if (minFg < minBg * 1.5) { 
-                                mascaraCalculadaIA[n] = 1;
-                                queue[tail++] = n;
-                            }
-                        }
-                    }
-                }
-
-                // 3. Pintar Previsualización en Amarillo
-                let imgDataPreview = tempCtx.getImageData(0, 0, width, height);
-                for (let i = 0; i < width * height; i++) {
-                    if (mascaraCalculadaIA[i] === 1) {
-                        let idx = i * 4;
-                        imgDataPreview.data[idx] = 251;     // R
-                        imgDataPreview.data[idx+1] = 191;   // G
-                        imgDataPreview.data[idx+2] = 36;    // B
-                    }
-                }
-
-                ctxBorrador.putImageData(imgDataPreview, 0, 0);
-                document.getElementById('confirm-modal').style.display = 'flex';
-            };
-            imgOriginalObj.src = estadoAnteriorUrl;
+            ctx.putImageData(imgDataCurrent, 0, 0);
         }
 
-        function cancelarEliminacion() {
-            document.getElementById('confirm-modal').style.display = 'none';
-            deshacerAccion(); // Remueve la previsualización amarilla
-            deshacerAccion(); // Remueve la estela roja
-        }
-
-        // SOLUCIÓN AL "LO PINTA, NO LO BORRA": RELLENO DE FONDO CONTENT-AWARE CON DIFUSIÓN DE CAPAS
-        function ejecutarEliminacionIA() {
-            document.getElementById('confirm-modal').style.display = 'none';
-            let width = canvasBorrador.width;
-            let height = canvasBorrador.height;
-
-            let estadoAnteriorUrl = historialEstados[historialEstados.length - 2];
-            let imgOriginal = new Image();
-
-            imgOriginal.onload = function() {
-                // 1. Dibujamos la imagen original limpia en un canvas de trabajo
-                let tempCanvas = document.createElement('canvas');
-                tempCanvas.width = width; tempCanvas.height = height;
-                let tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
-                tempCtx.drawImage(imgOriginal, 0, 0);
-                
-                let imgData = tempCtx.getImageData(0, 0, width, height);
-                
-                // 2. Hacemos un "agujero" totalmente transparente donde estaba el objeto/árbol
-                for (let i = 0; i < width * height; i++) {
-                    if (mascaraCalculadaIA[i] === 1) {
-                        imgData.data[(i * 4) + 3] = 0; // Canal Alpha a 0
-                    }
-                }
-                
-                // 3. Pasamos el agujero a un canvas
-                let holeCanvas = document.createElement('canvas');
-                holeCanvas.width = width; holeCanvas.height = height;
-                let holeCtx = holeCanvas.getContext('2d');
-                holeCtx.putImageData(imgData, 0, 0);
-
-                // 4. Magia de composición: Rellenamos el fondo usando el propio cielo/pasto exterior
-                ctxBorrador.clearRect(0, 0, width, height);
-                
-                // Fondo oscuro por defecto
-                ctxBorrador.fillStyle = '#0b0f19';
-                ctxBorrador.fillRect(0, 0, width, height);
-                
-                // Capas de difuminado gigante: Expanden el color del fondo hacia adentro del agujero
-                ctxBorrador.filter = 'blur(40px)';
-                ctxBorrador.drawImage(holeCanvas, 0, 0);
-                ctxBorrador.filter = 'blur(20px)';
-                ctxBorrador.drawImage(holeCanvas, 0, 0);
-                ctxBorrador.filter = 'blur(10px)';
-                ctxBorrador.drawImage(holeCanvas, 0, 0);
-                
-                // 5. Finalmente, dibujamos la imagen recortada encima sin filtro. 
-                // Esto mantiene los bordes perfectos y el fondo inventado rellena el hueco a la perfección.
-                ctxBorrador.filter = 'none';
-                ctxBorrador.drawImage(holeCanvas, 0, 0);
-
-                // Actualizamos el historial eliminando el paso amarillo
-                historialEstados.pop(); 
-                guardarEstadoHistorial();
-            };
-            imgOriginal.src = estadoAnteriorUrl;
-        }
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseleave', stopDrawing);
+        canvas.addEventListener('touchstart', startDrawing, {passive: false});
+        canvas.addEventListener('touchmove', draw, {passive: false});
+        canvas.addEventListener('touchend', stopDrawing);
 
         function guardarResultadoFinal() {
-            canvasBorrador.toBlob((blob) => {
-                prepararDescarga(blob, 'png', '¡Árbol/Objeto eliminado y fondo rellenado!');
+            canvas.toBlob((blob) => {
+                prepararDescarga(blob, 'png', '¡Imagen con fondo/objetos borrados descargada!');
             }, 'image/png');
         }
 
         // =========================================================================
-        // HERRAMIENTAS SECUNDARIAS TOTALMENTE INTACTAS (PDF, COMPRIMIR, CONVERTIR, CROP)
+        // HERRAMIENTAS SECUNDARIAS INTACTAS (PDF, COMPRIMIR, CONVERTIR, RECORTAR)
         // =========================================================================
-
         function cambiarModoPdf() {
             let modo = document.getElementById('modo-pdf').value;
             document.getElementById('seccion-unir').style.display = modo === 'unir' ? 'block' : 'none';
@@ -577,7 +482,7 @@
             let label = document.getElementById(`label-${tipo}-pdf`);
             if (input && input.files.length > 0) {
                 label.innerText = tipo === 'unir' ? `✅ ${input.files.length} archivos seleccionados` : `✅ ${input.files[0].name}`;
-                label.style.borderColor = "#34d399"; 
+                label.style.borderColor = "#34d399";
                 label.style.color = "#34d399";
             }
         }
