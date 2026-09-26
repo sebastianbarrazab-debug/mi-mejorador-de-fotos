@@ -73,8 +73,8 @@
         <!-- BORRADOR HÍBRIDO CON SEGMENTACIÓN AVANZADA DE SUPERFICIES FINAS -->
         <div id="tab-borrador" class="tab-content active">
             <div class="card">
-                <h2>Borrador IA para Objetos Complejos y Ramas</h2>
-                <p>Dibuja una estela roja aproximada sobre las ramas u objetos. La IA analizará la textura y los bordes, ignorando el fondo aunque te pases con el trazo.</p>
+                <h2>Borrador IA Inteligente</h2>
+                <p>Marca solo una parte del objeto (como el tronco de un árbol). La IA usará tu trazo como guía para encontrar y expandir la selección por todo el objeto automáticamente.</p>
                 <label for="input-borrador" class="file-label" id="label-borrador">📁 Seleccionar foto</label>
                 <input type="file" id="input-borrador" accept="image/*" onchange="prepararBorrador(event)">
                 
@@ -92,7 +92,7 @@
                         </div>
                         <div class="toolbar-group">
                             <button class="icon-btn" style="background: #2563eb;" onclick="analizarEstelaConIA()">
-                                🤖 IA Segmentar Superficie
+                                🤖 IA Auto-Expandir y Segmentar
                             </button>
                         </div>
                     </div>
@@ -104,9 +104,9 @@
                             <div class="modal-card">
                                 <h3 style="margin-top: 0; color: #f8fafc; font-size: 18px;">¿Eliminar esta selección?</h3>
                                 <p style="color: #cbd5e1; font-size: 13px; margin-bottom: 20px;">
-                                    La IA aisló la superficie/rama delimitada en <strong style="color:#fbbf24;">amarillo</strong> (descartando el fondo). ¿Deseas aplicar la eliminación inteligente?
+                                    La IA se expandió y delimitó el objeto en <strong style="color:#fbbf24;">amarillo</strong>. ¿Deseas borrarlo rellenando el fondo?
                                 </p>
-                                <button class="btn-action" style="margin-bottom: 8px; padding: 10px;" onclick="ejecutarEliminacionIA()">Sí, eliminar selección</button>
+                                <button class="btn-action" style="margin-bottom: 8px; padding: 10px;" onclick="ejecutarEliminacionIA()">Sí, eliminar y rellenar</button>
                                 <button class="btn-action btn-secondary" style="margin-bottom: 0; padding: 10px;" onclick="cancelarEliminacion()">Cancelar trazo</button>
                             </div>
                         </div>
@@ -192,7 +192,9 @@
     </div>
 
     <script>
-        // Utilidades generales de interfaz
+        // =========================================================================
+        // UTILIDADES GENERALES DE INTERFAZ
+        // =========================================================================
         let blobDescargaLocal = null;
         let extensionDescargaLocal = "png";
 
@@ -229,15 +231,15 @@
         }
 
         // =========================================================================
-        // MOTOR IA DE SEGMENTACIÓN MULTI-CLUSTER Y DETECCIÓN DE RAMAS Y OBJETOS FINOS
+        // MOTOR IA DE EXPANSIÓN DE REGIONES (FLOOD FILL) Y RELLENO CONTENT-AWARE
         // =========================================================================
         let canvasBorrador = document.getElementById('canvas-borrador');
         let ctxBorrador = canvasBorrador.getContext('2d', { willReadFrequently: true });
         
         let imagenBaseOriginal = new Image();
-        let historialEstados = []; // Historial paso a paso para deshacer
+        let historialEstados = []; 
         let isDrawing = false;
-        let mascaraCalculadaIA = null; // Guardará los píxeles aislados del objeto
+        let mascaraCalculadaIA = null; 
 
         function guardarEstadoHistorial() {
             if (canvasBorrador.width === 0) return;
@@ -248,7 +250,7 @@
 
         function deshacerAccion() {
             if (historialEstados.length <= 1) return;
-            historialEstados.pop(); // Descarta el estado actual
+            historialEstados.pop(); // Descarta actual
             let estadoAnteriorUrl = historialEstados[historialEstados.length - 1];
             let imgPrev = new Image();
             imgPrev.onload = function() {
@@ -286,7 +288,7 @@
             reader.readAsDataURL(file);
         }
 
-        // Eventos de trazado de estela roja
+        // Trazado de guía roja
         function getPointerPos(e) {
             let rect = canvasBorrador.getBoundingClientRect();
             let clientX = e.clientX || (e.touches && e.touches[0].clientX);
@@ -310,7 +312,7 @@
             let pos = getPointerPos(e);
             let brushSize = document.getElementById('brush-size').value;
             
-            ctxBorrador.strokeStyle = "rgba(239, 68, 68, 0.85)"; // Estela roja translúcida estilo guía
+            ctxBorrador.strokeStyle = "rgba(239, 68, 68, 0.85)"; 
             ctxBorrador.lineWidth = brushSize;
             ctxBorrador.lineCap = "round";
             ctxBorrador.lineJoin = "round";
@@ -322,7 +324,7 @@
             if (!isDrawing) return;
             isDrawing = false;
             ctxBorrador.beginPath();
-            guardarEstadoHistorial(); // Registra la estela trazada en el historial
+            guardarEstadoHistorial(); 
         }
 
         canvasBorrador.addEventListener('mousedown', startDrawing);
@@ -333,23 +335,20 @@
         canvasBorrador.addEventListener('touchmove', draw, {passive: false});
         canvasBorrador.addEventListener('touchend', stopDrawing);
 
-        // --- DISTANCIA PERCEPTUAL DE COLOR (Perceptual RGB Weighting) ---
+        // Distancia perceptual RGB
         function colorDistanceSq(r1, g1, b1, r2, g2, b2) {
             let dr = r1 - r2, dg = g1 - g2, db = b1 - b2;
-            // Ponderación basada en percepción del ojo humano (Sensibilidad mayor al verde)
             return 0.299 * dr * dr + 0.587 * dg * dg + 0.114 * db * db;
         }
 
-        // --- CLUSTERIZACIÓN SIMPLIFICADA K-MEANS PARA EXTRAER PALETAS DEL OBJETO Y FONDO ---
+        // Extractor de Paletas por K-Means
         function extractColorClusters(samples, k) {
             if (samples.length === 0) return [];
             let clusters = [];
-            // Semillas iniciales espaciadas
             for (let i = 0; i < k; i++) {
                 let idx = Math.floor((i / k) * samples.length);
                 clusters.push({ r: samples[idx][0], g: samples[idx][1], b: samples[idx][2] });
             }
-
             for (let iter = 0; iter < 4; iter++) {
                 let sums = Array(k).fill(0).map(() => ({ r: 0, g: 0, b: 0, count: 0 }));
                 for (let s of samples) {
@@ -371,20 +370,16 @@
             return clusters;
         }
 
-        // --- ALGORITMO PRINCIPAL DE SEGMENTACIÓN PARA RAMAS Y SUPERFICIES FINAS ---
+        // ALGORITMO IA: EXPANSIÓN INTELIGENTE (Flood Fill) A PARTIR DE LA ESTELA
         function analizarEstelaConIA() {
             if (historialEstados.length < 2) {
-                alert("Primero dibuja una estela roja sobre la rama u objeto que deseas eliminar.");
+                alert("Primero dibuja una estela roja sobre parte del objeto para guiar a la IA.");
                 return;
             }
 
             let width = canvasBorrador.width;
             let height = canvasBorrador.height;
-
-            // 1. Obtener los datos del canvas actual (con la estela roja)
             let imgDataRed = ctxBorrador.getImageData(0, 0, width, height).data;
-
-            // 2. Cargar la imagen original previa al trazo desde el historial
             let estadoAnteriorUrl = historialEstados[historialEstados.length - 2];
             let imgOriginalObj = new Image();
 
@@ -395,125 +390,99 @@
                 tempCtx.drawImage(imgOriginalObj, 0, 0);
                 let imgDataOriginal = tempCtx.getImageData(0, 0, width, height).data;
 
-                // Identificar píxeles bajo la estela roja (Objeto potencial)
                 let strokeMask = new Uint8Array(width * height);
                 let fgSamples = [];
                 let bgSamples = [];
 
-                for (let y = 0; y < height; y++) {
-                    for (let x = 0; x < width; x++) {
+                // 1. Identificar Semilla (Estela) y separar fondo
+                for (let y = 0; y < height; y += 2) {
+                    for (let x = 0; x < width; x += 2) {
                         let idx = (y * width + x) * 4;
                         let r = imgDataRed[idx], g = imgDataRed[idx+1], b = imgDataRed[idx+2], a = imgDataRed[idx+3];
                         
-                        // Si el píxel pertenece a la estela roja
+                        // Si es rojo transparente (Trazo del usuario)
                         if (a > 100 && r > 180 && g < 90 && b < 90) {
                             strokeMask[y * width + x] = 1;
-                            // Muestra de color original de la rama/superficie
-                            if (Math.random() < 0.25) {
-                                fgSamples.push([imgDataOriginal[idx], imgDataOriginal[idx+1], imgDataOriginal[idx+2]]);
-                            }
-                        }
-                    }
-                }
-
-                if (fgSamples.length < 10) {
-                    alert("No se detectó un trazo rojo suficiente. Intenta dibujar sobre la rama u objeto.");
-                    return;
-                }
-
-                // Dilatar la máscara para obtener una franja del fondo circundante (Anillo exterior)
-                let dilatedMask = new Uint8Array(width * height);
-                let borderPadding = 8;
-
-                for (let y = 0; y < height; y++) {
-                    for (let x = 0; x < width; x++) {
-                        if (strokeMask[y * width + x] === 1) {
-                            for (let dy = -borderPadding; dy <= borderPadding; dy += 2) {
-                                for (let dx = -borderPadding; dx <= borderPadding; dx += 2) {
-                                    let ny = y + dy, nx = x + dx;
-                                    if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
-                                        dilatedMask[ny * width + nx] = 1;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Recolectar muestras del fondo (Píxeles fuera de la estela pero dentro del borde de dilatación)
-                for (let y = 0; y < height; y++) {
-                    for (let x = 0; x < width; x++) {
-                        let idx = (y * width + x) * 4;
-                        if (dilatedMask[y * width + x] === 1 && strokeMask[y * width + x] === 0) {
-                            if (Math.random() < 0.15) {
+                            fgSamples.push([imgDataOriginal[idx], imgDataOriginal[idx+1], imgDataOriginal[idx+2]]);
+                        } else {
+                            // Toma muestras del resto de la imagen para aprender el color del cielo/fondo
+                            if (Math.random() < 0.05) {
                                 bgSamples.push([imgDataOriginal[idx], imgDataOriginal[idx+1], imgDataOriginal[idx+2]]);
                             }
                         }
                     }
                 }
 
-                // 3. Clusterización K-Means: Extraer paletas de color para el objeto (rama) y el fondo (cielo/pared)
-                let fgClusters = extractColorClusters(fgSamples, 4); // 4 tonos (corteza, sombras, hojas, highlights)
-                let bgClusters = extractColorClusters(bgSamples, 3); // 3 tonos de fondo
+                if (fgSamples.length < 5) return alert("Trazo muy pequeño. Marca un poco más.");
+
+                let fgClusters = extractColorClusters(fgSamples, 3); // Aprende color del tronco/hojas
+                let bgClusters = extractColorClusters(bgSamples, 4); // Aprende color del cielo/pasto
 
                 mascaraCalculadaIA = new Uint8Array(width * height);
+                let visited = new Uint8Array(width * height);
+                
+                // Cola para algoritmo Flood Fill hiper rápido
+                let queue = new Int32Array(width * height);
+                let head = 0, tail = 0;
+
+                // Inicializar la expansión desde el trazo del usuario
+                for (let i = 0; i < width * height; i++) {
+                    if (strokeMask[i] === 1) {
+                        queue[tail++] = i;
+                        visited[i] = 1;
+                        mascaraCalculadaIA[i] = 1;
+                    }
+                }
+
+                // 2. Expansión conectada: Trepa por el árbol detectando ramas no pintadas
+                while(head < tail) {
+                    let curr = queue[head++];
+                    let x = curr % width;
+                    let y = Math.floor(curr / width);
+
+                    // 4 Vecinos
+                    let neighbors = [];
+                    if(x > 0) neighbors.push(curr - 1);
+                    if(x < width - 1) neighbors.push(curr + 1);
+                    if(y > 0) neighbors.push(curr - width);
+                    if(y < height - 1) neighbors.push(curr + width);
+
+                    for (let i = 0; i < neighbors.length; i++) {
+                        let n = neighbors[i];
+                        if (visited[n] === 0) {
+                            visited[n] = 1;
+                            let idx = n * 4;
+                            let r = imgDataOriginal[idx], g = imgDataOriginal[idx+1], b = imgDataOriginal[idx+2];
+                            
+                            let minFg = Infinity;
+                            for(let c of fgClusters) {
+                                let d = colorDistanceSq(r, g, b, c.r, c.g, c.b);
+                                if(d < minFg) minFg = d;
+                            }
+                            
+                            let minBg = Infinity;
+                            for(let c of bgClusters) {
+                                let d = colorDistanceSq(r, g, b, c.r, c.g, c.b);
+                                if(d < minBg) minBg = d;
+                            }
+
+                            // Si el píxel vecino se parece más al árbol que al cielo, se añade y la expansión continúa
+                            if (minFg < minBg * 1.5) { 
+                                mascaraCalculadaIA[n] = 1;
+                                queue[tail++] = n;
+                            }
+                        }
+                    }
+                }
+
+                // 3. Pintar Previsualización en Amarillo
                 let imgDataPreview = tempCtx.getImageData(0, 0, width, height);
-
-                // 4. Clasificación Perceptual Píxel por Píxel (Descartando el fondo si el trazo se pasa)
-                for (let y = 0; y < height; y++) {
-                    for (let x = 0; x < width; x++) {
-                        if (strokeMask[y * width + x] === 1) {
-                            let idx = (y * width + x) * 4;
-                            let origR = imgDataOriginal[idx], origG = imgDataOriginal[idx+1], origB = imgDataOriginal[idx+2];
-
-                            // Distancia mínima a los colores de la rama/objeto
-                            let minFgDist = Infinity;
-                            for (let c of fgClusters) {
-                                let d = colorDistanceSq(origR, origG, origB, c.r, c.g, c.b);
-                                if (d < minFgDist) minFgDist = d;
-                            }
-
-                            // Distancia mínima a los colores del fondo
-                            let minBgDist = Infinity;
-                            for (let c of bgClusters) {
-                                let d = colorDistanceSq(origR, origG, origB, c.r, c.g, c.b);
-                                if (d < minBgDist) minBgDist = d;
-                            }
-
-                            // Criterio de Decisión IA: Pertenece al objeto si es significativamente más cercano a la paleta del objeto que al fondo
-                            if (minFgDist < minBgDist * 1.15) {
-                                mascaraCalculadaIA[y * width + x] = 1;
-                            }
-                        }
-                    }
-                }
-
-                // 5. Cierre morfológico leve para rellenar huecos en ramas finas y mantener la continuidad
-                let mascaraMorfológica = new Uint8Array(width * height);
-                for (let y = 1; y < height - 1; y++) {
-                    for (let x = 1; x < width - 1; x++) {
-                        let idx = y * width + x;
-                        if (mascaraCalculadaIA[idx] === 1) {
-                            mascaraMorfológica[idx] = 1;
-                        } else {
-                            let vecinos = mascaraCalculadaIA[idx - 1] + mascaraCalculadaIA[idx + 1] +
-                                          mascaraCalculadaIA[idx - width] + mascaraCalculadaIA[idx + width];
-                            if (vecinos >= 3) mascaraMorfológica[idx] = 1; // Rellena micro-grietas en ramificaciones
-                        }
-                    }
-                }
-                mascaraCalculadaIA = mascaraMorfológica;
-
-                // 6. Pintar Previsualización en AMARILLO para confirmación del usuario
-                for (let y = 0; y < height; y++) {
-                    for (let x = 0; x < width; x++) {
-                        let idx = (y * width + x) * 4;
-                        if (mascaraCalculadaIA[y * width + x] === 1) {
-                            // Tono Amarillo Neón de Selección Inteligente
-                            imgDataPreview.data[idx] = 251;     // R
-                            imgDataPreview.data[idx+1] = 191;   // G
-                            imgDataPreview.data[idx+2] = 36;    // B
-                        }
+                for (let i = 0; i < width * height; i++) {
+                    if (mascaraCalculadaIA[i] === 1) {
+                        let idx = i * 4;
+                        imgDataPreview.data[idx] = 251;     // R
+                        imgDataPreview.data[idx+1] = 191;   // G
+                        imgDataPreview.data[idx+2] = 36;    // B
                     }
                 }
 
@@ -526,61 +495,62 @@
         function cancelarEliminacion() {
             document.getElementById('confirm-modal').style.display = 'none';
             deshacerAccion(); // Remueve la previsualización amarilla
-            deshacerAccion(); // Remueve la estela roja trazada
+            deshacerAccion(); // Remueve la estela roja
         }
 
-        // --- INPAINTING MULTI-PASADA DE DIFUSIÓN CONSERVADORA DE TEXTURAS ---
+        // SOLUCIÓN AL "LO PINTA, NO LO BORRA": RELLENO DE FONDO CONTENT-AWARE CON DIFUSIÓN DE CAPAS
         function ejecutarEliminacionIA() {
             document.getElementById('confirm-modal').style.display = 'none';
             let width = canvasBorrador.width;
             let height = canvasBorrador.height;
 
-            // Cargar la imagen previa limpia (sin marcas amarillas ni rojas)
             let estadoAnteriorUrl = historialEstados[historialEstados.length - 2];
             let imgOriginal = new Image();
 
             imgOriginal.onload = function() {
-                ctxBorrador.drawImage(imgOriginal, 0, 0);
-                let imgData = ctxBorrador.getImageData(0, 0, width, height);
-                let data = imgData.data;
-
-                // Algoritmo de inpainting multi-pasada: Difunde el contexto del fondo circundante sobre la zona del objeto
-                let iteraciones = 12;
-                for (let iter = 0; iter < iteraciones; iter++) {
-                    for (let y = 1; y < height - 1; y++) {
-                        for (let x = 1; x < width - 1; x++) {
-                            if (mascaraCalculadaIA[y * width + x] === 1) {
-                                let sumR = 0, sumG = 0, sumB = 0, count = 0;
-                                
-                                // Ponderación de 8 vecinos adyacentes
-                                let offsets = [-width - 1, -width, -width + 1, -1, 1, width - 1, width, width + 1];
-                                for (let off of offsets) {
-                                    let nPos = (y * width + x) + off;
-                                    let nIdx = nPos * 4;
-                                    
-                                    // Utiliza vecinos que ya forman parte del fondo limpio
-                                    if (mascaraCalculadaIA[nPos] === 0 || iter > 0) {
-                                        sumR += data[nIdx];
-                                        sumG += data[nIdx+1];
-                                        sumB += data[nIdx+2];
-                                        count++;
-                                    }
-                                }
-
-                                let targetIdx = (y * width + x) * 4;
-                                if (count > 0) {
-                                    data[targetIdx] = sumR / count;
-                                    data[targetIdx+1] = sumG / count;
-                                    data[targetIdx+2] = sumB / count;
-                                }
-                            }
-                        }
+                // 1. Dibujamos la imagen original limpia en un canvas de trabajo
+                let tempCanvas = document.createElement('canvas');
+                tempCanvas.width = width; tempCanvas.height = height;
+                let tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+                tempCtx.drawImage(imgOriginal, 0, 0);
+                
+                let imgData = tempCtx.getImageData(0, 0, width, height);
+                
+                // 2. Hacemos un "agujero" totalmente transparente donde estaba el objeto/árbol
+                for (let i = 0; i < width * height; i++) {
+                    if (mascaraCalculadaIA[i] === 1) {
+                        imgData.data[(i * 4) + 3] = 0; // Canal Alpha a 0
                     }
                 }
+                
+                // 3. Pasamos el agujero a un canvas
+                let holeCanvas = document.createElement('canvas');
+                holeCanvas.width = width; holeCanvas.height = height;
+                let holeCtx = holeCanvas.getContext('2d');
+                holeCtx.putImageData(imgData, 0, 0);
 
-                // Reemplazar la capa intermedia por el resultado definitivo
+                // 4. Magia de composición: Rellenamos el fondo usando el propio cielo/pasto exterior
+                ctxBorrador.clearRect(0, 0, width, height);
+                
+                // Fondo oscuro por defecto
+                ctxBorrador.fillStyle = '#0b0f19';
+                ctxBorrador.fillRect(0, 0, width, height);
+                
+                // Capas de difuminado gigante: Expanden el color del fondo hacia adentro del agujero
+                ctxBorrador.filter = 'blur(40px)';
+                ctxBorrador.drawImage(holeCanvas, 0, 0);
+                ctxBorrador.filter = 'blur(20px)';
+                ctxBorrador.drawImage(holeCanvas, 0, 0);
+                ctxBorrador.filter = 'blur(10px)';
+                ctxBorrador.drawImage(holeCanvas, 0, 0);
+                
+                // 5. Finalmente, dibujamos la imagen recortada encima sin filtro. 
+                // Esto mantiene los bordes perfectos y el fondo inventado rellena el hueco a la perfección.
+                ctxBorrador.filter = 'none';
+                ctxBorrador.drawImage(holeCanvas, 0, 0);
+
+                // Actualizamos el historial eliminando el paso amarillo
                 historialEstados.pop(); 
-                ctxBorrador.putImageData(imgData, 0, 0);
                 guardarEstadoHistorial();
             };
             imgOriginal.src = estadoAnteriorUrl;
@@ -588,7 +558,7 @@
 
         function guardarResultadoFinal() {
             canvasBorrador.toBlob((blob) => {
-                prepararDescarga(blob, 'png', '¡Objeto o rama eliminada con éxito!');
+                prepararDescarga(blob, 'png', '¡Árbol/Objeto eliminado y fondo rellenado!');
             }, 'image/png');
         }
 
@@ -596,7 +566,6 @@
         // HERRAMIENTAS SECUNDARIAS TOTALMENTE INTACTAS (PDF, COMPRIMIR, CONVERTIR, CROP)
         // =========================================================================
 
-        // --- LÓGICA PDF ---
         function cambiarModoPdf() {
             let modo = document.getElementById('modo-pdf').value;
             document.getElementById('seccion-unir').style.display = modo === 'unir' ? 'block' : 'none';
@@ -645,7 +614,6 @@
             } catch (e) { alert("Error al extraer página."); }
         }
 
-        // --- LÓGICA COMPRIMIR Y CONVERTIR ---
         async function procesarCompresion() {
             let input = document.getElementById('input-comprimir').files[0];
             if (!input) return alert("Selecciona una foto.");
@@ -666,7 +634,6 @@
             } catch (e) { alert("Error al convertir."); }
         }
 
-        // --- LÓGICA RECORTAR ---
         let cropperInstance = null;
         function prepararRecortar(event) {
             updateLabel('recortar');
