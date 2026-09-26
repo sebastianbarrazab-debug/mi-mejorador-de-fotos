@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Motor de Análisis y Corrección de Texto</title>
+    <title>Analizador Ortográfico y Herramientas de Texto</title>
     <style>
-        /* Diseño oscuro y limpio (estilo IDE) */
+        /* Diseño oscuro, moderno y profesional */
         :root {
             --bg-color: #1e1e1e;
             --panel-bg: #252526;
@@ -16,6 +16,7 @@
             --error-red: #f14c4c;
             --warn-yellow: #cca700;
             --success-green: #89d185;
+            --toolbar-bg: #2d2d30;
         }
 
         body {
@@ -44,17 +45,48 @@
             font-weight: 500;
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Barra de herramientas clásica */
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            background-color: var(--toolbar-bg);
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .tool-btn {
+            background-color: #3c3c3c;
+            color: #d4d4d4;
+            border: 1px solid #555;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background-color 0.2s;
+        }
+
+        .tool-btn:hover {
+            background-color: #505050;
         }
 
         textarea {
             width: 100%;
-            height: 150px;
+            height: 200px;
             background-color: #1e1e1e;
             color: #d4d4d4;
             border: 1px solid var(--border-color);
             border-radius: 6px;
-            padding: 12px;
+            padding: 15px;
             font-size: 15px;
+            line-height: 1.5;
             resize: vertical;
             box-sizing: border-box;
             outline: none;
@@ -65,191 +97,183 @@
             border-color: var(--accent-blue);
         }
 
-        .controls {
+        .status-bar {
             display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #858585;
         }
 
-        button {
+        .main-action {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .btn-analizar {
             background-color: var(--accent-blue);
             color: white;
             border: none;
-            padding: 10px 18px;
-            border-radius: 4px;
+            padding: 12px 24px;
+            border-radius: 6px;
             cursor: pointer;
+            font-size: 15px;
             font-weight: 600;
             transition: background-color 0.2s;
+            width: 100%;
+            max-width: 400px;
         }
 
-        button:hover {
+        .btn-analizar:hover {
             background-color: var(--accent-hover);
         }
 
-        select {
-            background-color: #3c3c3c;
-            color: white;
-            border: 1px solid var(--border-color);
-            padding: 10px;
-            border-radius: 4px;
-            outline: none;
+        .btn-analizar:disabled {
+            background-color: #555;
+            cursor: not-allowed;
         }
 
-        .stats-panel {
-            margin-top: 20px;
-            background-color: #2d2d2d;
-            padding: 15px;
-            border-radius: 6px;
-            border-left: 4px solid var(--accent-blue);
-            display: none;
-        }
-
+        /* Tarjetas de Errores */
         .error-card {
             background-color: #2d2d30;
             border: 1px solid var(--border-color);
+            border-left: 4px solid var(--border-color);
             border-radius: 6px;
             padding: 15px;
-            margin-top: 10px;
+            margin-bottom: 12px;
+            transition: transform 0.1s;
         }
 
+        .error-card:hover {
+            background-color: #333337;
+        }
+
+        .grammar-err { border-left-color: var(--warn-yellow); }
+        .punct-err { border-left-color: var(--accent-blue); }
+        .spell-err { border-left-color: var(--error-red); }
+
         .suggestion-btn {
-            background-color: #3c3c3c;
-            color: #d4d4d4;
-            border: 1px solid #555;
-            padding: 5px 10px;
-            margin: 4px 4px 0 0;
+            background-color: #059669; /* Verde para sugerencias */
+            color: #ffffff;
+            border: none;
+            padding: 6px 12px;
+            margin: 6px 6px 0 0;
             border-radius: 4px;
             font-size: 13px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
         }
 
         .suggestion-btn:hover {
-            background-color: #505050;
+            background-color: #047857;
         }
 
-        .result-section {
+        #contenedor-errores {
             display: none;
-            margin-top: 25px;
+            margin-top: 20px;
         }
-        
-        .grammar-err { color: var(--warn-yellow); }
-        .punct-err { color: var(--accent-blue); }
-        .spell-err { color: var(--error-red); }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2>🛠️ Motor de Corrección y Puntuación</h2>
-        <textarea id="input-texto" placeholder="Escribe o pega tu texto aquí..."></textarea>
+        <h2>
+            <span>📝 Editor y Analizador de Texto</span>
+        </h2>
+
+        <!-- HERRAMIENTAS CLÁSICAS -->
+        <div class="toolbar">
+            <button class="tool-btn" onclick="copiarTexto()">📋 Copiar</button>
+            <button class="tool-btn" onclick="limpiarTexto()">🗑️ Limpiar</button>
+            <button class="tool-btn" onclick="convertirMayusculas()">AA Mayúsculas</button>
+            <button class="tool-btn" onclick="convertirMinusculas()">aa Minúsculas</button>
+            <button class="tool-btn" onclick="quitarEspacios()">🧹 Quitar espacios extra</button>
+        </div>
+
+        <!-- ÁREA DE TEXTO -->
+        <textarea id="input-texto" placeholder="Escribe o pega tu texto aquí..." oninput="actualizarContadores()"></textarea>
         
-        <div class="controls">
-            <button onclick="analizarTexto()">🔍 Analizar Errores</button>
-            <select id="sel-estilo-ia">
-                <option value="auto">Arreglo Automático (Puntuación y Preguntas)</option>
-                <option value="formal">Estilo Formal (Remueve coloquialismos)</option>
-            </select>
-            <button onclick="mejorarTextoIA()" style="background-color: #059669;">✨ Aplicar Mejora</button>
+        <!-- ESTADÍSTICAS EN TIEMPO REAL -->
+        <div class="status-bar">
+            <span id="contador-palabras">Palabras: 0</span>
+            <span id="contador-caracteres">Caracteres: 0</span>
         </div>
 
-        <div id="stats-texto" class="stats-panel">
-            <strong>Errores detectados: <span id="lbl-errores" style="color: var(--error-red);">0</span></strong>
+        <!-- BOTÓN PRINCIPAL DE ANÁLISIS -->
+        <div class="main-action">
+            <button id="btn-analizar" class="btn-analizar" onclick="analizarTexto()">🔍 Analizar Ortografía y Gramática</button>
         </div>
 
+        <!-- CONTENEDOR DE RESULTADOS INTERACTIVOS -->
         <div id="contenedor-errores">
+            <h3 style="margin-top: 0; color: white; font-size: 16px; border-bottom: 1px solid #3e3e42; padding-bottom: 8px;">
+                Resultados del Análisis <span id="badge-errores" style="background: var(--error-red); color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 10px;">0</span>
+            </h3>
             <div id="lista-errores"></div>
-        </div>
-
-        <div id="seccion-resultado-texto" class="result-section">
-            <h3 id="lbl-titulo-resultado" style="color: #ffffff; font-size: 16px;">Resultado:</h3>
-            <textarea id="output-texto" readonly></textarea>
         </div>
     </div>
 
     <script>
-        // =========================================================================
-        // MOTOR DE ANÁLISIS SINTÁCTICO Y PUNTUACIÓN (Versión Corregida)
-        // =========================================================================
+        // ==========================================
+        // HERRAMIENTAS DE TEXTO (Las clásicas)
+        // ==========================================
+        const textarea = document.getElementById('input-texto');
 
-        function normalizarModismosTexto(texto) {
-            let limpio = texto;
-            const diccionario = [
-                { regex: /\bnc\b/gi, reemplazo: 'no sé' },
-                { regex: /\bq\b/gi, reemplazo: 'que' },
-                { regex: /\bxq\b/gi, reemplazo: 'porque' },
-                { regex: /\btb\b/gi, reemplazo: 'también' },
-                { regex: /\bx\b/gi, reemplazo: 'por' },
-                { regex: /\bpa\b/gi, reemplazo: 'para' },
-                { regex: /\bporfa\b/gi, reemplazo: 'por favor' }
-            ];
-            diccionario.forEach(item => { limpio = limpio.replace(item.regex, item.reemplazo); });
-            return limpio;
-        }
-
-        function corregirPuntuacionYEstructura(texto) {
-            let limpio = texto.trim();
-
-            // 1. Corregir espaciado alrededor de signos (sin romper puntos suspensivos ni cierres)
-            limpio = limpio.replace(/\s+([,.;:?!])/g, '$1');
-            limpio = limpio.replace(/([,;:?!])(?=[^\s"'\)\]])/g, '$1 '); 
-            limpio = limpio.replace(/\.(?=[^\s"'\)\]\.])/g, '. '); // Punto normal, ignorar "..."
-
-            // 2. Extraer oraciones de forma segura usando expresiones regulares
-            // Busca bloques de texto que terminan en punto, exclamación o interrogación
-            let regexOraciones = /([^.?!]+[.?!]*)/g;
-            let fragmentos = limpio.match(regexOraciones);
+        function actualizarContadores() {
+            let texto = textarea.value;
+            let caracteres = texto.length;
+            let palabras = texto.trim() === "" ? 0 : texto.trim().split(/\s+/).length;
             
-            if (!fragmentos) return limpio; // Fallback de seguridad
-
-            // 3. Palabras que al INICIO de una oración indican pregunta
-            const iniciosPregunta = /^\s*(qué|cómo|cuándo|dónde|quién|por qué|cuánto|cuál|cuáles|sabes|puedes|quieres|tienes|es|son|haces|te parece)\b/i;
-
-            let resultado = fragmentos.map(frase => {
-                let f = frase.trim();
-                if (!f) return '';
-
-                let tieneApertura = f.startsWith('¿');
-                let tieneCierre = f.endsWith('?');
-                
-                // Es pregunta si empieza con pronombre interrogativo o si ya tiene algún signo de interrogación
-                let esPregunta = iniciosPregunta.test(f) || tieneApertura || tieneCierre;
-
-                if (esPregunta) {
-                    f = f.replace(/\.+$/, ''); // Quitar puntos accidentales al final
-                    if (!f.startsWith('¿') && !f.startsWith('¡')) f = '¿' + f;
-                    if (!f.endsWith('?') && !f.endsWith('!')) f = f + '?';
-                } else {
-                    // Si es oración normal, asegurar punto final
-                    if (!/[.?!]$/.test(f)) f = f + '.';
-                }
-
-                // Capitalizar primera letra ignorando el signo ¿ o ¡
-                if (f.startsWith('¿') || f.startsWith('¡')) {
-                    if (f.length > 1) {
-                        f = f.charAt(0) + f.charAt(1).toUpperCase() + f.slice(2);
-                    }
-                } else {
-                    f = f.charAt(0).toUpperCase() + f.slice(1);
-                }
-                
-                return f;
-            });
-
-            return resultado.join(' ');
+            document.getElementById('contador-caracteres').innerText = `Caracteres: ${caracteres}`;
+            document.getElementById('contador-palabras').innerText = `Palabras: ${palabras}`;
         }
-        
+
+        function copiarTexto() {
+            if (!textarea.value) return;
+            navigator.clipboard.writeText(textarea.value).then(() => {
+                alert("¡Texto copiado al portapapeles!");
+            });
+        }
+
+        function limpiarTexto() {
+            if (confirm("¿Estás seguro de que deseas limpiar todo el texto?")) {
+                textarea.value = "";
+                actualizarContadores();
+                document.getElementById('contenedor-errores').style.display = 'none';
+            }
+        }
+
+        function convertirMayusculas() {
+            textarea.value = textarea.value.toUpperCase();
+            actualizarContadores();
+        }
+
+        function convertirMinusculas() {
+            textarea.value = textarea.value.toLowerCase();
+            actualizarContadores();
+        }
+
+        function quitarEspacios() {
+            textarea.value = textarea.value.replace(/\s+/g, ' ').trim();
+            actualizarContadores();
+        }
+
+        // ==========================================
+        // MOTOR DE ANÁLISIS (Solo escaneo manual)
+        // ==========================================
         async function analizarTexto() {
-            let textoCrudo = document.getElementById('input-texto').value.trim();
-            if (!textoCrudo) return alert("Por favor, ingresa un texto para analizar.");
+            let texto = textarea.value.trim();
+            if (!texto) return alert("Por favor, ingresa un texto para analizar.");
 
-            let texto = normalizarModismosTexto(textoCrudo);
-
-            document.getElementById('stats-texto').style.display = 'block';
-            document.getElementById('lbl-errores').innerText = "...";
-            document.getElementById('contenedor-errores').style.display = 'none';
-            document.getElementById('seccion-resultado-texto').style.display = 'none';
+            let btn = document.getElementById('btn-analizar');
+            btn.innerText = "⏳ Analizando...";
+            btn.disabled = true;
 
             try {
+                // Consulta directa a la API para buscar errores
                 let response = await fetch('https://api.languagetool.org/v2/check', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -258,105 +282,74 @@
 
                 let data = await response.json();
                 let matches = data.matches || [];
-                document.getElementById('lbl-errores').innerText = matches.length;
+                
+                mostrarResultados(matches, texto);
 
-                let contenedorLista = document.getElementById('lista-errores');
-                contenedorLista.innerHTML = '';
-
-                if (matches.length === 0) {
-                    contenedorLista.innerHTML = '<div style="color: var(--success-green); padding: 10px;">¡Tu texto está perfecto! 🎉 No se detectaron errores.</div>';
-                } else {
-                    matches.forEach((err, idx) => {
-                        let textoAfectado = texto.substring(err.offset, err.offset + err.length);
-                        let esGramatica = err.rule && err.rule.issueType === 'grammar';
-                        let esPuntuacion = err.rule && err.rule.issueType === 'typographical';
-                        
-                        let tipoError = esPuntuacion ? 'Puntuación' : (esGramatica ? 'Gramática' : 'Ortografía');
-                        let claseColor = esPuntuacion ? 'punct-err' : (esGramatica ? 'grammar-err' : 'spell-err');
-
-                        let sugerenciasHTML = err.replacements.slice(0, 5).map(rep => 
-                            `<button class="suggestion-btn" onclick="aplicarCorreccion(${err.offset}, ${err.length}, '${rep.value.replace(/'/g, "\\'")}')">${rep.value}</button>`
-                        ).join('');
-
-                        let card = document.createElement('div');
-                        card.className = `error-card`;
-                        card.innerHTML = `
-                            <div style="font-size: 13px; color: #858585; margin-bottom: 5px;">
-                                Error #${idx + 1}: <strong class="${claseColor}">${tipoError}</strong>
-                            </div>
-                            <div style="margin-bottom: 8px; font-size: 15px;">
-                                Encontrado en: <span style="text-decoration: underline;" class="${claseColor}">${textoAfectado || '(Espacio/Signo faltante)'}</span>
-                            </div>
-                            <div style="font-size: 14px; margin-bottom: 10px;">${err.message}</div>
-                            ${sugerenciasHTML ? `<div>${sugerenciasHTML}</div>` : ''}
-                        `;
-                        contenedorLista.appendChild(card);
-                    });
-                }
-                document.getElementById('contenedor-errores').style.display = 'block';
             } catch (e) {
-                alert("Error al conectar con el servidor de análisis (LanguageTool).");
+                alert("Hubo un error al conectar con el servidor de análisis. Revisa tu conexión.");
+            } finally {
+                btn.innerText = "🔍 Analizar Ortografía y Gramática";
+                btn.disabled = false;
             }
         }
 
-        function aplicarCorreccion(offset, length, nuevoTexto) {
-            let input = document.getElementById('input-texto');
-            let textoOriginal = input.value;
-            // Normalizar el texto original igual que como se analizó
-            let textoNormalizado = normalizarModismosTexto(textoOriginal);
-            input.value = textoNormalizado.substring(0, offset) + nuevoTexto + textoNormalizado.substring(offset + length);
+        function mostrarResultados(matches, textoOriginal) {
+            document.getElementById('badge-errores').innerText = matches.length;
+            let contenedorLista = document.getElementById('lista-errores');
+            contenedorLista.innerHTML = '';
+
+            if (matches.length === 0) {
+                contenedorLista.innerHTML = '<div style="color: var(--success-green); background: #1e2e1e; padding: 15px; border-radius: 6px; border: 1px solid var(--success-green);">¡Excelente! No se detectaron errores ortográficos ni gramaticales.</div>';
+            } else {
+                matches.forEach((err, idx) => {
+                    let textoAfectado = textoOriginal.substring(err.offset, err.offset + err.length);
+                    let esGramatica = err.rule && err.rule.issueType === 'grammar';
+                    let esPuntuacion = err.rule && err.rule.issueType === 'typographical';
+                    
+                    let tipoError = esPuntuacion ? 'Puntuación' : (esGramatica ? 'Gramática' : 'Ortografía');
+                    let claseColor = esPuntuacion ? 'punct-err' : (esGramatica ? 'grammar-err' : 'spell-err');
+                    let colorTexto = esPuntuacion ? 'var(--accent-blue)' : (esGramatica ? 'var(--warn-yellow)' : 'var(--error-red)');
+
+                    // Generar botones de sugerencia (Solo tomamos las 4 mejores para no saturar)
+                    let sugerenciasHTML = err.replacements.slice(0, 4).map(rep => 
+                        // Pasamos el offset, length y el valor de reemplazo escapando comillas
+                        `<button class="suggestion-btn" onclick="aplicarSugerencia(${err.offset}, ${err.length}, '${rep.value.replace(/'/g, "\\'")}')">${rep.value}</button>`
+                    ).join('');
+
+                    let card = document.createElement('div');
+                    card.className = `error-card ${claseColor}`;
+                    card.innerHTML = `
+                        <div style="font-size: 13px; color: #858585; margin-bottom: 5px;">
+                            Detalle: <strong style="color: ${colorTexto}">${tipoError}</strong>
+                        </div>
+                        <div style="margin-bottom: 8px; font-size: 15px;">
+                            Problema en: <span style="text-decoration: underline; text-decoration-color: ${colorTexto}; background-color: rgba(255,255,255,0.05); padding: 2px 4px; border-radius: 3px;">${textoAfectado || '(Falta espacio o signo)'}</span>
+                        </div>
+                        <div style="font-size: 14px; margin-bottom: 12px; color: #d4d4d4;">${err.message}</div>
+                        ${sugerenciasHTML ? `<div style="border-top: 1px solid #3e3e42; padding-top: 10px;">${sugerenciasHTML}</div>` : '<div style="font-size: 12px; color: #858585; font-style: italic;">No hay sugerencias automáticas. Debes corregirlo manualmente.</div>'}
+                    `;
+                    contenedorLista.appendChild(card);
+                });
+            }
+            document.getElementById('contenedor-errores').style.display = 'block';
+        }
+
+        // Función que se ejecuta cuando el usuario hace clic en un botón verde de sugerencia
+        function aplicarSugerencia(offset, length, nuevoTexto) {
+            let textoOriginal = textarea.value;
+            
+            // Reemplazamos exactamente en la posición indicada
+            textarea.value = textoOriginal.substring(0, offset) + nuevoTexto + textoOriginal.substring(offset + length);
+            
+            // Actualizamos contadores
+            actualizarContadores();
+
+            // Volvemos a analizar automáticamente para que los "offsets" (posiciones) de los demás errores se recalculen
             analizarTexto();
         }
 
-        async function mejorarTextoIA() {
-            let textoCrudo = document.getElementById('input-texto').value.trim();
-            let estilo = document.getElementById('sel-estilo-ia').value;
-            if (!textoCrudo) return alert("Por favor, ingresa un texto.");
-
-            let texto = normalizarModismosTexto(textoCrudo);
-            let output = document.getElementById('output-texto');
-            document.getElementById('seccion-resultado-texto').style.display = 'block';
-            output.value = "Procesando correcciones automáticas...";
-
-            if (estilo === 'auto') {
-                document.getElementById('lbl-titulo-resultado').innerText = "✨ Texto Reparado (Puntuación y Preguntas):";
-                try {
-                    // 1. Consultamos LanguageTool para correcciones ortográficas básicas
-                    let response = await fetch('https://api.languagetool.org/v2/check', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: new URLSearchParams({ 'text': texto, 'language': 'es' })
-                    });
-                    let data = await response.json();
-                    let matches = data.matches || [];
-                    
-                    // Aplicar sugerencias de atrás hacia adelante para no romper los índices
-                    let textoCorregido = texto;
-                    for (let i = matches.length - 1; i >= 0; i--) {
-                        let match = matches[i];
-                        if (match.replacements && match.replacements.length > 0) {
-                            let sugerencia = match.replacements[0].value;
-                            textoCorregido = textoCorregido.substring(0, match.offset) + sugerencia + textoCorregido.substring(match.offset + match.length);
-                        }
-                    }
-
-                    // 2. Pasamos el filtro fuerte de puntuación y estructura
-                    output.value = corregirPuntuacionYEstructura(textoCorregido);
-                } catch (e) {
-                    // Fallback si la API falla, aplicamos solo el motor local
-                    output.value = corregirPuntuacionYEstructura(texto);
-                }
-            } 
-            else if (estilo === 'formal') {
-                document.getElementById('lbl-titulo-resultado').innerText = "Texto adaptado a Estilo Formal:";
-                let procesado = texto;
-                procesado = procesado.replace(/\b(hola|buenas|q tal|que tal)\b/gi, 'Estimado/a,')
-                                     .replace(/\b(ok|vale|dale)\b/gi, 'de acuerdo')
-                                     .replace(/\b(yo creo que|me parece que)\b/gi, 'considero que');
-                
-                output.value = corregirPuntuacionYEstructura(procesado);
-            }
-        }
+        // Inicializar contadores al cargar la página
+        actualizarContadores();
     </script>
 </body>
 </html>
