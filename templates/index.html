@@ -4,14 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>iLoveFotos - Herramientas de Imagen y PDF Online Gratis</title>
-    <meta name="description" content="Borra fondos de fotos, comprime, recorta, une PDFs y optimiza tus documentos online y gratis.">
     
-    <!-- LIBRERÍAS EXTERNAS (Client-Side) -->
-    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+    <!-- LIBRERÍAS EXTERNAS -->
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     
-    <!-- Cropper.js para Recortes -->
+    <!-- Cropper.js -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
@@ -40,17 +38,12 @@
         
         .btn-action { background: #2563eb; color: white; padding: 14px 28px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; box-shadow: 0 4px 6px -1px rgba(37,99,235,0.4); margin-bottom: 10px; }
         .btn-action:hover { background: #1d4ed8; }
-        .btn-action:disabled { background: #4b5563; cursor: not-allowed; box-shadow: none; }
         
-        .btn-ia { background: #8b5cf6; box-shadow: 0 4px 6px -1px rgba(139,92,246,0.4); margin-bottom: 15px; }
-        .btn-ia:hover { background: #7c3aed; }
-
+        .ads-section { display: none; width: 100%; max-width: 550px; padding: 20px; background: #1e293b; border-radius: 12px; border: 1px solid #374151; box-sizing: border-box; }
+        .status-text { color: #34d399; font-weight: 600; margin-bottom: 10px; }
+        
         .img-container { width: 100%; max-height: 400px; margin-bottom: 20px; display: none; background: #000; border-radius: 8px; overflow: hidden; }
         .img-container img { max-width: 100%; display: block; }
-
-        .ads-section { display: none; width: 100%; max-width: 550px; padding: 20px; background: #1e293b; border-radius: 12px; border: 1px solid #374151; box-sizing: border-box; }
-        .ad-box { background: #0b0f19; padding: 40px 20px; margin: 20px 0; color: #64748b; border-radius: 8px; font-size: 14px; border: 1px dashed #334155; }
-        .status-text { color: #34d399; font-weight: 600; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -58,45 +51,50 @@
     <nav class="navbar">
         <a href="#" class="logo">iLove<span>Fotos</span></a>
         <div class="nav-links">
-            <button id="nav-borrador" class="active" onclick="switchTab('borrador')">🧹 Borrador de Fondo</button>
+            <button id="nav-borrador" class="active" onclick="switchTab('borrador')">🪄 Borrador Inteligente</button>
             <button id="nav-pdf" onclick="switchTab('pdf')">📑 PDF</button>
             <button id="nav-comprimir" onclick="switchTab('comprimir')">🗜️ Comprimir</button>
             <button id="nav-convertir" onclick="switchTab('convertir')">🔄 Convertir</button>
             <button id="nav-recortar" onclick="switchTab('recortar')">✂️ Recortar</button>
-            <button id="nav-mejorar" onclick="switchTab('mejorar')">⚡ Optimizar</button>
-            <button id="nav-heic" onclick="switchTab('heic')">📱 HEIC</button>
         </div>
     </nav>
 
     <div class="container">
         
-        <!-- HERRAMIENTA: BORRADOR (IA + MANUAL) -->
+        <!-- BORRADOR INTELIGENTE -->
         <div id="tab-borrador" class="tab-content active">
             <div class="card">
-                <h2>Borrador de Fondo</h2>
-                <p>Usa la Inteligencia Artificial para un borrado perfecto, o hazlo manualmente pintando de rojo las zonas a eliminar.</p>
+                <h2>Borrador Inteligente de Fondo</h2>
+                <p>Haz clic en el fondo para detectarlo y borrarlo mágicamente, o usa el pincel para los detalles.</p>
                 <label for="input-borrador" class="file-label" id="label-borrador">📁 Seleccionar foto</label>
                 <input type="file" id="input-borrador" accept="image/*" onchange="prepararBorrador(event)">
                 
-                <div id="opciones-borrador" style="display:none; margin-top: 15px;">
-                    <!-- Botón IA -->
-                    <button class="btn-action btn-ia" id="btn-borrado-ia" onclick="procesarBorradoIA()">✨ Borrado Mágico Automático (IA)</button>
+                <div id="herramientas-borrador" style="display:none; margin-top: 20px;">
                     
-                    <hr style="border-color: #374151; margin: 20px 0;">
-                    
-                    <!-- Herramientas Manuales -->
-                    <h3 style="font-size: 16px; margin-bottom: 10px; text-align: left; color: #e2e8f0;">O hacerlo manualmente:</h3>
-                    <p style="margin: 5px 0; color: #94a3b8; font-size: 13px; text-align: left;">Tamaño del Pincel:</p>
-                    <input type="range" id="brush-size" min="5" max="100" value="30" style="width: 100%; margin-bottom: 15px;">
-                    
-                    <div style="position: relative; background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGlpSUGIg3m5eVlYGIYNYBhmIQBvYEPAwAwLwH9rS1X+QAAAABJRU5ErkJggg==') repeat; border-radius: 8px; border: 1px solid #374151; overflow: hidden; display: inline-block; background-color: #fff; max-width: 100%;">
-                        <!-- Lienzo original -->
-                        <canvas id="canvas-borrador" style="cursor: crosshair; display: block; max-width: 100%; touch-action: none;"></canvas>
-                        <!-- Lienzo superpuesto para pintar en rojo transparente -->
-                        <canvas id="canvas-rojo" style="position: absolute; top: 0; left: 0; pointer-events: none; opacity: 0.5;"></canvas>
+                    <div style="display: flex; gap: 15px; margin-bottom: 15px; justify-content: center; background: #1e293b; padding: 10px; border-radius: 8px;">
+                        <label style="color: white; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <input type="radio" name="tool-mode" value="magic" checked onchange="toggleBorradorMode()"> 🪄 Varita (Auto)
+                        </label>
+                        <label style="color: white; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <input type="radio" name="tool-mode" value="brush" onchange="toggleBorradorMode()"> 🖌️ Pincel (Manual)
+                        </label>
+                    </div>
+
+                    <div id="opciones-magic">
+                        <p style="margin: 5px 0; color: #94a3b8; font-size: 13px; text-align: left;">Tolerancia Mágica (Si borra mucho, bájala):</p>
+                        <input type="range" id="magic-tolerance" min="0" max="150" value="40" style="width: 100%; margin-bottom: 15px;">
+                    </div>
+
+                    <div id="opciones-brush" style="display:none;">
+                        <p style="margin: 5px 0; color: #94a3b8; font-size: 13px; text-align: left;">Tamaño del Pincel Manual:</p>
+                        <input type="range" id="brush-size" min="5" max="100" value="30" style="width: 100%; margin-bottom: 15px;">
                     </div>
                     
-                    <button class="btn-action" style="margin-top: 20px;" onclick="guardarFondoBorrado()">📥 Descargar PNG sin fondo (Manual)</button>
+                    <div style="position: relative; background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGlpSUGIg3m5eVlYGIYNYBhmIQBvYEPAwAwLwH9rS1X+QAAAABJRU5ErkJggg==') repeat; border-radius: 8px; border: 1px solid #374151; overflow: hidden; display: flex; justify-content: center; align-items: center; background-color: #fff;">
+                        <canvas id="canvas-borrador" style="cursor: crosshair; max-width: 100%; touch-action: none;"></canvas>
+                    </div>
+                    
+                    <button class="btn-action" style="margin-top: 20px;" onclick="guardarFondoBorrado()">📥 Descargar PNG sin fondo</button>
                 </div>
             </div>
         </div>
@@ -106,23 +104,21 @@
             <div class="card">
                 <h2>Unir y Dividir PDF</h2>
                 <p>Fusiona varios archivos en uno solo o extrae páginas de manera 100% segura y local.</p>
-                
                 <select id="modo-pdf" class="selector-formato" onchange="cambiarModoPdf()">
                     <option value="unir">Unir varios archivos PDF</option>
                     <option value="dividir">Extraer una página de un PDF</option>
                 </select>
 
                 <div id="seccion-unir">
-                    <label for="input-unir-pdf" class="file-label" id="label-unir-pdf">📁 Seleccionar archivos PDF (múltiples)</label>
+                    <label for="input-unir-pdf" class="file-label" id="label-unir-pdf">📁 Seleccionar PDFs</label>
                     <input type="file" id="input-unir-pdf" accept="application/pdf" multiple onchange="updateLabelPdf('unir')">
                     <button class="btn-action" onclick="procesarUnirPdf()">Unir PDFs Ahora</button>
                 </div>
 
                 <div id="seccion-dividir" style="display: none;">
-                    <label for="input-dividir-pdf" class="file-label" id="label-dividir-pdf">📁 Seleccionar archivo PDF</label>
+                    <label for="input-dividir-pdf" class="file-label" id="label-dividir-pdf">📁 Seleccionar PDF</label>
                     <input type="file" id="input-dividir-pdf" accept="application/pdf" onchange="updateLabelPdf('dividir')">
-                    <p style="margin: 10px 0 5px; font-size: 13px; color: #94a3b8; text-align: left;">Número de página a extraer:</p>
-                    <input type="number" id="input-pagina-pdf" value="1" min="1" style="width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid #374151; box-sizing: border-box; font-size: 15px;">
+                    <input type="number" id="input-pagina-pdf" value="1" min="1" style="width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid #374151; box-sizing: border-box;">
                     <button class="btn-action" onclick="procesarDividirPdf()">Extraer Página Ahora</button>
                 </div>
             </div>
@@ -135,7 +131,7 @@
                 <p>Reduce drásticamente el peso de tu foto (KB/MB) manteniendo la misma extensión.</p>
                 <label for="input-comprimir" class="file-label" id="label-comprimir">📁 Seleccionar foto</label>
                 <input type="file" id="input-comprimir" accept="image/jpeg, image/png, image/webp" onchange="updateLabel('comprimir')">
-                <button class="btn-action" id="btn-comprimir" onclick="procesarCompresion()">Comprimir Ahora</button>
+                <button class="btn-action" onclick="procesarCompresion()">Comprimir Ahora</button>
             </div>
         </div>
 
@@ -143,7 +139,7 @@
         <div id="tab-convertir" class="tab-content">
             <div class="card">
                 <h2>Convertir Formato</h2>
-                <p>Cambia la extensión de tu imagen. Ideal para subir fotos a páginas con restricciones.</p>
+                <p>Cambia la extensión de tu imagen de manera instantánea.</p>
                 <select id="formato-salida" class="selector-formato">
                     <option value="image/jpeg">Convertir a JPG</option>
                     <option value="image/png">Convertir a PNG</option>
@@ -151,7 +147,7 @@
                 </select>
                 <label for="input-convertir" class="file-label" id="label-convertir">📁 Seleccionar foto</label>
                 <input type="file" id="input-convertir" accept="image/*" onchange="updateLabel('convertir')">
-                <button class="btn-action" id="btn-convertir" onclick="procesarConversion()">Convertir Ahora</button>
+                <button class="btn-action" onclick="procesarConversion()">Convertir Ahora</button>
             </div>
         </div>
 
@@ -169,44 +165,17 @@
             </div>
         </div>
 
-        <!-- HERRAMIENTA: OPTIMIZAR CALIDAD -->
-        <div id="tab-mejorar" class="tab-content">
-            <div class="card">
-                <h2>Optimizar Calidad</h2>
-                <p>Aumenta los píxeles y define los bordes mediante algoritmos avanzados en el servidor.</p>
-                <label for="input-mejorar" class="file-label" id="label-mejorar">📁 Seleccionar foto</label>
-                <input type="file" id="input-mejorar" accept="image/*" onchange="updateLabel('mejorar')">
-                <button class="btn-action" onclick="procesarMejora()">Optimizar Calidad</button>
-            </div>
-        </div>
-
-        <!-- HERRAMIENTA: HEIC A JPG -->
-        <div id="tab-heic" class="tab-content">
-            <div class="card">
-                <h2>HEIC a JPG</h2>
-                <p>Decodifica fotos de iPhone de forma segura en tu navegador sin subirlas a internet.</p>
-                <label for="input-heic" class="file-label" id="label-heic">🍏 Seleccionar archivo .heic</label>
-                <input type="file" id="input-heic" accept=".heic,.HEIC" onchange="updateLabel('heic')">
-                <button class="btn-action" id="btn-convertir-heic" onclick="procesarHeicWasm()">Convertir a JPG</button>
-            </div>
-        </div>
-
-        <!-- ZONA DE DESCARGA Y ANUNCIOS -->
+        <!-- ZONA DE DESCARGA -->
         <div class="ads-section" id="seccion-anuncio">
-            <div class="status-text" id="texto-estado">¡Procesamiento completo con éxito!</div>
-            <div class="ad-box">
-                <strong>[Espacio Publicitario Reservado para Google AdSense]</strong><br>
-                <span style="font-size: 12px; display:block; margin-top:5px;">El anuncio de video/banner se cargará aquí automáticamente.</span>
-            </div>
-            <button id="btn-descargar" class="btn-action" disabled>Espera 10s...</button>
+            <div class="status-text" id="texto-estado">¡Procesamiento completo!</div>
+            <button id="btn-descargar" class="btn-action">📥 Descargar Archivo</button>
         </div>
+
     </div>
 
     <script>
         let blobDescargaLocal = null;
-        let urlDescargaServidor = "";
         let extensionDescargaLocal = "png";
-        let cropperInstance = null;
 
         function switchTab(tab) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -220,401 +189,283 @@
             let input = document.getElementById(`input-${tipo}`);
             let label = document.getElementById(`label-${tipo}`);
             if (input && input.files && input.files[0]) {
-                label.innerText = "✅ Archivo seleccionado: " + input.files[0].name;
+                label.innerText = "✅ " + input.files[0].name;
                 label.style.borderColor = "#34d399";
                 label.style.color = "#34d399";
             }
         }
 
-        // --- LÓGICA DEL BORRADOR (IA Y MANUAL) ---
+        function prepararDescarga(blob, extension, mensaje) {
+            blobDescargaLocal = blob;
+            extensionDescargaLocal = extension;
+            document.getElementById('texto-estado').innerText = mensaje;
+            document.getElementById('seccion-anuncio').style.display = 'block';
+            document.getElementById('btn-descargar').onclick = () => {
+                let url = URL.createObjectURL(blobDescargaLocal);
+                let a = document.createElement('a');
+                a.href = url;
+                a.download = `ilovefotos_editado.${extensionDescargaLocal}`;
+                a.click();
+            };
+        }
+
+        // --- LÓGICA DEL BORRADOR MÁGICO Y MANUAL ---
         let canvasBorrador = document.getElementById('canvas-borrador');
         let ctxBorrador = canvasBorrador.getContext('2d', { willReadFrequently: true });
-        
-        let canvasRojo = document.getElementById('canvas-rojo');
-        let ctxRojo = canvasRojo.getContext('2d');
-        
         let isDrawing = false;
+        let currentMode = 'magic';
+
+        function toggleBorradorMode() {
+            currentMode = document.querySelector('input[name="tool-mode"]:checked').value;
+            if (currentMode === 'magic') {
+                document.getElementById('opciones-magic').style.display = 'block';
+                document.getElementById('opciones-brush').style.display = 'none';
+            } else {
+                document.getElementById('opciones-magic').style.display = 'none';
+                document.getElementById('opciones-brush').style.display = 'block';
+            }
+        }
 
         function prepararBorrador(event) {
-            updateLabel('borrador');
             let file = event.target.files[0];
             if (!file) return;
+            document.getElementById('label-borrador').innerText = "✅ " + file.name;
+            document.getElementById('label-borrador').style.borderColor = "#34d399";
+            document.getElementById('label-borrador').style.color = "#34d399";
 
             let reader = new FileReader();
             reader.onload = function(e) {
                 let img = new Image();
                 img.onload = function() {
-                    let maxWidth = 500;
+                    let maxWidth = window.innerWidth > 600 ? 500 : window.innerWidth - 80;
                     let scale = 1;
-                    if (img.width > maxWidth) {
-                        scale = maxWidth / img.width;
-                    }
+                    if (img.width > maxWidth) scale = maxWidth / img.width;
                     
                     canvasBorrador.width = img.width * scale;
                     canvasBorrador.height = img.height * scale;
                     
-                    canvasRojo.width = canvasBorrador.width;
-                    canvasRojo.height = canvasBorrador.height;
-                    
                     ctxBorrador.globalCompositeOperation = "source-over";
                     ctxBorrador.drawImage(img, 0, 0, canvasBorrador.width, canvasBorrador.height);
-                    
-                    ctxRojo.clearRect(0, 0, canvasRojo.width, canvasRojo.height);
-                    
-                    document.getElementById('opciones-borrador').style.display = 'block';
+                    document.getElementById('herramientas-borrador').style.display = 'block';
                 }
                 img.src = e.target.result;
             }
             reader.readAsDataURL(file);
         }
 
-        // Función para el botón IA
-        async function procesarBorradoIA() {
-            let inputElement = document.getElementById('input-borrador');
-            if (!inputElement || !inputElement.files || !inputElement.files[0]) return alert("Selecciona una foto primero.");
-
-            let boton = document.getElementById('btn-borrado-ia');
-            boton.innerText = "⏳ Procesando con IA...";
-            boton.disabled = true;
-
-            let data = new FormData();
-            data.append("foto", inputElement.files[0]);
-            document.getElementById('texto-estado').innerText = "Eliminando fondo con Inteligencia Artificial...";
-            document.getElementById('seccion-anuncio').style.display = 'block';
-
-            try {
-                // Asegúrate de tener este endpoint configurado en tu servidor backend
-                let res = await fetch('/borrar-fondo-ia', { method: 'POST', body: data });
-                let json = await res.json();
-                
-                if (json.descarga_url) {
-                    urlDescargaServidor = json.descarga_url;
-                    blobDescargaLocal = null;
-                    extensionDescargaLocal = "png";
-                    arrancarTemporizadorAnuncio();
-                } else {
-                    alert("Error en el servidor al procesar la IA.");
-                }
-            } catch (error) {
-                alert("Error de conexión con el servidor IA.");
-            } finally {
-                boton.innerText = "✨ Borrado Mágico Automático (IA)";
-                boton.disabled = false;
-            }
-        }
-
-        // Funciones del Borrador Manual
         function getPointerPos(e) {
             let rect = canvasBorrador.getBoundingClientRect();
             let clientX = e.clientX || (e.touches && e.touches[0].clientX);
             let clientY = e.clientY || (e.touches && e.touches[0].clientY);
             return {
-                x: (clientX - rect.left) * (canvasBorrador.width / rect.width),
-                y: (clientY - rect.top) * (canvasBorrador.height / rect.height)
+                x: Math.floor((clientX - rect.left) * (canvasBorrador.width / rect.width)),
+                y: Math.floor((clientY - rect.top) * (canvasBorrador.height / rect.height))
             };
         }
 
+        // Manejador del algoritmo Flood Fill (Varita)
+        canvasBorrador.addEventListener('click', function(e) {
+            if (currentMode !== 'magic') return;
+            let pos = getPointerPos(e);
+            let tolerance = parseInt(document.getElementById('magic-tolerance').value);
+            magicWand(pos.x, pos.y, tolerance);
+        });
+
+        // Manejadores del Pincel
         function startDrawing(e) {
+            if (currentMode !== 'brush') return;
             isDrawing = true;
             draw(e);
         }
-
+        
+        function stopDrawing() {
+            if (currentMode !== 'brush') return;
+            isDrawing = false;
+            ctxBorrador.beginPath();
+        }
+        
         function draw(e) {
-            if (!isDrawing) return;
-            e.preventDefault();
-
+            if (!isDrawing || currentMode !== 'brush') return;
+            e.preventDefault(); // Previene el scroll en móviles al dibujar
             let pos = getPointerPos(e);
             let brushSize = document.getElementById('brush-size').value;
 
-            ctxRojo.strokeStyle = "#ff0000";
-            ctxRojo.lineWidth = brushSize;
-            ctxRojo.lineCap = "round";
-            ctxRojo.lineJoin = "round";
-            
-            ctxRojo.lineTo(pos.x, pos.y);
-            ctxRojo.stroke();
-            ctxRojo.beginPath();
-            ctxRojo.moveTo(pos.x, pos.y);
-        }
-        
-        function stopDrawing() {
-            if (!isDrawing) return;
-            isDrawing = false;
-            
-            ctxRojo.beginPath();
-
             ctxBorrador.globalCompositeOperation = "destination-out";
-            ctxBorrador.drawImage(canvasRojo, 0, 0);
-            ctxBorrador.globalCompositeOperation = "source-over";
+            ctxBorrador.lineWidth = brushSize;
+            ctxBorrador.lineCap = "round";
             
-            ctxRojo.clearRect(0, 0, canvasRojo.width, canvasRojo.height);
+            ctxBorrador.lineTo(pos.x, pos.y);
+            ctxBorrador.stroke();
+            ctxBorrador.beginPath();
+            ctxBorrador.moveTo(pos.x, pos.y);
         }
 
         canvasBorrador.addEventListener('mousedown', startDrawing);
         canvasBorrador.addEventListener('mousemove', draw);
         canvasBorrador.addEventListener('mouseup', stopDrawing);
         canvasBorrador.addEventListener('mouseleave', stopDrawing);
-
         canvasBorrador.addEventListener('touchstart', startDrawing, {passive: false});
         canvasBorrador.addEventListener('touchmove', draw, {passive: false});
         canvasBorrador.addEventListener('touchend', stopDrawing);
 
+        function magicWand(startX, startY, tolerance) {
+            let width = canvasBorrador.width;
+            let height = canvasBorrador.height;
+            let imgData = ctxBorrador.getImageData(0, 0, width, height);
+            let data = imgData.data;
+            
+            let startPos = startY * width + startX;
+            let targetR = data[startPos * 4];
+            let targetG = data[startPos * 4 + 1];
+            let targetB = data[startPos * 4 + 2];
+            let targetA = data[startPos * 4 + 3];
+
+            if (targetA === 0) return;
+
+            let stack = [startPos];
+            let visited = new Uint8Array(width * height);
+            visited[startPos] = 1;
+
+            while (stack.length > 0) {
+                let current = stack.pop();
+                let x = current % width;
+                let y = Math.floor(current / width);
+
+                data[current * 4 + 3] = 0; // Transparencia pura
+
+                let neighbors = [
+                    current - width, 
+                    current + width, 
+                    current - 1,     
+                    current + 1      
+                ];
+
+                for (let i = 0; i < 4; i++) {
+                    let n = neighbors[i];
+                    
+                    if (n < 0 || n >= width * height) continue;
+                    if (i === 2 && x === 0) continue;
+                    if (i === 3 && x === width - 1) continue;
+
+                    if (!visited[n]) {
+                        let r = data[n * 4];
+                        let g = data[n * 4 + 1];
+                        let b = data[n * 4 + 2];
+                        let a = data[n * 4 + 3];
+
+                        if (a > 0 && 
+                            Math.abs(r - targetR) <= tolerance && 
+                            Math.abs(g - targetG) <= tolerance && 
+                            Math.abs(b - targetB) <= tolerance) {
+                            
+                            visited[n] = 1;
+                            stack.push(n);
+                        }
+                    }
+                }
+            }
+            ctxBorrador.globalCompositeOperation = "source-over";
+            ctxBorrador.putImageData(imgData, 0, 0);
+        }
+
         function guardarFondoBorrado() {
             canvasBorrador.toBlob((blob) => {
-                blobDescargaLocal = blob;
-                urlDescargaServidor = "";
-                extensionDescargaLocal = "png";
-                document.getElementById('texto-estado').innerText = "¡Fondo borrado con éxito!";
-                document.getElementById('seccion-anuncio').style.display = 'block';
-                arrancarTemporizadorAnuncio();
+                prepararDescarga(blob, 'png', '¡Fondo borrado con éxito!');
             }, 'image/png');
         }
 
-        // --- FUNCIONES DE PDF ---
+        // --- LÓGICA PDF ---
         function cambiarModoPdf() {
             let modo = document.getElementById('modo-pdf').value;
-            if (modo === 'unir') {
-                document.getElementById('seccion-unir').style.display = 'block';
-                document.getElementById('seccion-dividir').style.display = 'none';
-            } else {
-                document.getElementById('seccion-unir').style.display = 'none';
-                document.getElementById('seccion-dividir').style.display = 'block';
-            }
+            document.getElementById('seccion-unir').style.display = modo === 'unir' ? 'block' : 'none';
+            document.getElementById('seccion-dividir').style.display = modo === 'dividir' ? 'block' : 'none';
         }
 
         function updateLabelPdf(tipo) {
             let input = document.getElementById(`input-${tipo}-pdf`);
             let label = document.getElementById(`label-${tipo}-pdf`);
-            if (input && input.files && input.files.length > 0) {
-                if (tipo === 'unir') {
-                    label.innerText = `✅ ${input.files.length} archivos PDF seleccionados`;
-                } else {
-                    label.innerText = "✅ Archivo seleccionado: " + input.files[0].name;
-                }
-                label.style.borderColor = "#34d399";
-                label.style.color = "#34d399";
+            if (input && input.files.length > 0) {
+                label.innerText = tipo === 'unir' ? `✅ ${input.files.length} archivos seleccionados` : `✅ ${input.files[0].name}`;
+                label.style.borderColor = "#34d399"; label.style.color = "#34d399";
             }
         }
 
         async function procesarUnirPdf() {
             let input = document.getElementById('input-unir-pdf');
-            if (!input.files || input.files.length < 2) return alert("Selecciona al menos 2 archivos PDF.");
-
+            if (input.files.length < 2) return alert("Selecciona al menos 2 PDFs.");
             try {
                 const mergedPdf = await PDFLib.PDFDocument.create();
-                for (let i = 0; i < input.files.length; i++) {
-                    let fileArrayBuffer = await input.files[i].arrayBuffer();
-                    let pdfDoc = await PDFLib.PDFDocument.load(fileArrayBuffer);
+                for (let file of input.files) {
+                    let arrayBuffer = await file.arrayBuffer();
+                    let pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
                     let copiedPages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
-                    copiedPages.forEach((page) => mergedPdf.addPage(page));
+                    copiedPages.forEach(page => mergedPdf.addPage(page));
                 }
                 let pdfBytes = await mergedPdf.save();
-                blobDescargaLocal = new Blob([pdfBytes], { type: 'application/pdf' });
-                urlDescargaServidor = "";
-                extensionDescargaLocal = "pdf";
-
-                document.getElementById('texto-estado').innerText = "¡PDFs unidos con éxito!";
-                document.getElementById('seccion-anuncio').style.display = 'block';
-                arrancarTemporizadorAnuncio();
-            } catch (error) {
-                alert("Error al unir los archivos PDF.");
-            }
+                prepararDescarga(new Blob([pdfBytes], { type: 'application/pdf' }), 'pdf', '¡PDFs unidos con éxito!');
+            } catch (e) { alert("Error al unir PDFs."); }
         }
 
         async function procesarDividirPdf() {
             let input = document.getElementById('input-dividir-pdf');
-            if (!input.files || !input.files[0]) return alert("Selecciona un archivo PDF.");
-
-            let paginaNum = parseInt(document.getElementById('input-pagina-pdf').value) - 1;
+            if (!input.files[0]) return alert("Selecciona un PDF.");
+            let num = parseInt(document.getElementById('input-pagina-pdf').value) - 1;
             try {
-                let fileArrayBuffer = await input.files[0].arrayBuffer();
-                let pdfDoc = await PDFLib.PDFDocument.load(fileArrayBuffer);
-                
-                if (paginaNum < 0 || paginaNum >= pdfDoc.getPageCount()) {
-                    return alert(`El PDF tiene ${pdfDoc.getPageCount()} páginas. Elige un número válido.`);
-                }
-
+                let arrayBuffer = await input.files[0].arrayBuffer();
+                let pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+                if (num < 0 || num >= pdfDoc.getPageCount()) return alert("Página no válida.");
                 const subPdf = await PDFLib.PDFDocument.create();
-                let [copiedPage] = await subPdf.copyPages(pdfDoc, [paginaNum]);
+                let [copiedPage] = await subPdf.copyPages(pdfDoc, [num]);
                 subPdf.addPage(copiedPage);
-
                 let pdfBytes = await subPdf.save();
-                blobDescargaLocal = new Blob([pdfBytes], { type: 'application/pdf' });
-                urlDescargaServidor = "";
-                extensionDescargaLocal = "pdf";
-
-                document.getElementById('texto-estado').innerText = `¡Página ${paginaNum + 1} extraída con éxito!`;
-                document.getElementById('seccion-anuncio').style.display = 'block';
-                arrancarTemporizadorAnuncio();
-            } catch (error) {
-                alert("Error al extraer la página del PDF.");
-            }
+                prepararDescarga(new Blob([pdfBytes], { type: 'application/pdf' }), 'pdf', `¡Página ${num + 1} extraída!`);
+            } catch (e) { alert("Error al extraer página."); }
         }
 
-        // --- COMPRIMIR ---
+        // --- LÓGICA COMPRIMIR Y CONVERTIR ---
         async function procesarCompresion() {
-            let inputElement = document.getElementById('input-comprimir');
-            if (!inputElement || !inputElement.files || !inputElement.files[0]) return alert("Selecciona una foto.");
-            
-            let archivo = inputElement.files[0];
-            let boton = document.getElementById('btn-comprimir');
-            boton.innerText = "⏳ Comprimiendo...";
-            boton.disabled = true;
-            extensionDescargaLocal = archivo.name.split('.').pop();
-
+            let input = document.getElementById('input-comprimir').files[0];
+            if (!input) return alert("Selecciona una foto.");
             try {
-                blobDescargaLocal = await imageCompression(archivo, { maxSizeMB: 0.8, useWebWorker: true });
-                urlDescargaServidor = "";
-                let mbFinal = (blobDescargaLocal.size / 1024 / 1024).toFixed(2);
-                document.getElementById('texto-estado').innerText = `¡Comprimido a ${mbFinal} MB!`;
-                document.getElementById('seccion-anuncio').style.display = 'block';
-                arrancarTemporizadorAnuncio();
-            } catch (error) {
-                alert("Error al comprimir la imagen.");
-            } finally {
-                boton.innerText = "Comprimir Ahora";
-                boton.disabled = false;
-            }
+                let blob = await imageCompression(input, { maxSizeMB: 0.8, useWebWorker: true });
+                prepararDescarga(blob, input.name.split('.').pop(), `¡Comprimido a ${(blob.size/1024/1024).toFixed(2)} MB!`);
+            } catch (e) { alert("Error al comprimir."); }
         }
 
-        // --- CONVERTIR FORMATO ---
         async function procesarConversion() {
-            let inputElement = document.getElementById('input-convertir');
-            if (!inputElement || !inputElement.files || !inputElement.files[0]) return alert("Selecciona una foto.");
-            
+            let input = document.getElementById('input-convertir').files[0];
             let formato = document.getElementById('formato-salida').value;
-            let boton = document.getElementById('btn-convertir');
-            boton.innerText = "⏳ Convirtiendo...";
-            boton.disabled = true;
-            extensionDescargaLocal = formato === 'image/png' ? 'png' : (formato === 'image/webp' ? 'webp' : 'jpg');
-
+            if (!input) return alert("Selecciona una foto.");
             try {
-                blobDescargaLocal = await imageCompression(inputElement.files[0], { maxSizeMB: 5, useWebWorker: true, fileType: formato });
-                urlDescargaServidor = "";
-                document.getElementById('texto-estado').innerText = `¡Convertido a ${extensionDescargaLocal.toUpperCase()}!`;
-                document.getElementById('seccion-anuncio').style.display = 'block';
-                arrancarTemporizadorAnuncio();
-            } catch (error) {
-                alert("Error al convertir la imagen.");
-            } finally {
-                boton.innerText = "Convertir Ahora";
-                boton.disabled = false;
-            }
+                let blob = await imageCompression(input, { maxSizeMB: 5, useWebWorker: true, fileType: formato });
+                let ext = formato.split('/')[1];
+                prepararDescarga(blob, ext, `¡Convertido a ${ext.toUpperCase()}!`);
+            } catch (e) { alert("Error al convertir."); }
         }
 
-        // --- RECORTAR ---
+        // --- LÓGICA RECORTAR ---
+        let cropperInstance = null;
         function prepararRecortar(event) {
             updateLabel('recortar');
-            let input = event.target;
-            if (input.files && input.files[0]) {
-                let reader = new FileReader();
-                reader.onload = function(e) {
-                    let imagenCropper = document.getElementById('cropper-image');
-                    imagenCropper.src = e.target.result;
-                    document.getElementById('cropper-container').style.display = 'block';
-                    document.getElementById('btn-recortar').style.display = 'block';
-
-                    if (cropperInstance) cropperInstance.destroy();
-                    cropperInstance = new Cropper(imagenCropper, { viewMode: 2, autoCropArea: 0.8, responsive: true });
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
+            let file = event.target.files[0];
+            if (!file) return;
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                let img = document.getElementById('cropper-image');
+                img.src = e.target.result;
+                document.getElementById('cropper-container').style.display = 'block';
+                document.getElementById('btn-recortar').style.display = 'block';
+                if (cropperInstance) cropperInstance.destroy();
+                cropperInstance = new Cropper(img, { viewMode: 2, autoCropArea: 0.8, responsive: true });
+            };
+            reader.readAsDataURL(file);
         }
 
         function procesarRecorte() {
             if (!cropperInstance) return;
-            let canvas = cropperInstance.getCroppedCanvas();
-            canvas.toBlob((blob) => {
-                blobDescargaLocal = blob;
-                urlDescargaServidor = "";
-                extensionDescargaLocal = "png";
-                document.getElementById('texto-estado').innerText = "¡Recorte aplicado con éxito!";
-                document.getElementById('seccion-anuncio').style.display = 'block';
-                arrancarTemporizadorAnuncio();
+            cropperInstance.getCroppedCanvas().toBlob((blob) => {
+                prepararDescarga(blob, 'png', '¡Recorte aplicado con éxito!');
             }, 'image/png');
-        }
-
-        // --- MEJORAR (SERVIDOR) ---
-        async function procesarMejora() {
-            let inputElement = document.getElementById('input-mejorar');
-            if (!inputElement || !inputElement.files || !inputElement.files[0]) return alert("Selecciona una foto.");
-
-            let data = new FormData();
-            data.append("foto", inputElement.files[0]);
-            document.getElementById('texto-estado').innerText = "Procesando en el servidor...";
-            document.getElementById('seccion-anuncio').style.display = 'block';
-
-            try {
-                let res = await fetch('/procesar', { method: 'POST', body: data });
-                let json = await res.json();
-                if (json.descarga_url) {
-                    urlDescargaServidor = json.descarga_url;
-                    blobDescargaLocal = null;
-                    extensionDescargaLocal = "jpg";
-                    arrancarTemporizadorAnuncio();
-                } else {
-                    alert("Error en el servidor.");
-                }
-            } catch (error) {
-                alert("Error de conexión con el servidor.");
-            }
-        }
-
-        // --- HEIC A JPG ---
-        async function procesarHeicWasm() {
-            let inputElement = document.getElementById('input-heic');
-            if (!inputElement || !inputElement.files || !inputElement.files[0]) return alert("Selecciona un .heic");
-
-            let boton = document.getElementById('btn-convertir-heic');
-            boton.innerText = "⏳ Decodificando...";
-            boton.disabled = true;
-            extensionDescargaLocal = 'jpg';
-
-            try {
-                let blobJpg = await heic2any({ blob: inputElement.files[0], toType: "image/jpeg", quality: 0.9 });
-                blobDescargaLocal = Array.isArray(blobJpg) ? blobJpg[0] : blobJpg;
-                urlDescargaServidor = "";
-                document.getElementById('texto-estado').innerText = "¡Conversión Completada!";
-                document.getElementById('seccion-anuncio').style.display = 'block';
-                arrancarTemporizadorAnuncio();
-            } catch (error) {
-                alert("Error. Asegúrate de subir un archivo .heic original.");
-            } finally {
-                boton.innerText = "Convertir a JPG";
-                boton.disabled = false;
-            }
-        }
-
-        // --- TEMPORIZADOR DE DESCARGA ---
-        function arrancarTemporizadorAnuncio() {
-            let segundos = 10;
-            let btnDescargar = document.getElementById('btn-descargar');
-            btnDescargar.disabled = true;
-            btnDescargar.innerText = `Espera ${segundos}s...`;
-            document.getElementById('seccion-anuncio').scrollIntoView({ behavior: 'smooth' });
-
-            let timer = setInterval(() => {
-                segundos--;
-                if (segundos > 0) {
-                    btnDescargar.innerText = `Espera ${segundos}s...`;
-                } else {
-                    clearInterval(timer);
-                    btnDescargar.innerText = "📥 Descargar Archivo";
-                    btnDescargar.disabled = false;
-                    
-                    btnDescargar.onclick = () => {
-                        if (blobDescargaLocal) {
-                            let url = URL.createObjectURL(blobDescargaLocal);
-                            let a = document.createElement('a');
-                            a.href = url;
-                            a.download = `ilovefotos_editado.${extensionDescargaLocal}`;
-                            a.click();
-                        } else if (urlDescargaServidor) {
-                            window.location.href = urlDescargaServidor;
-                        }
-                    };
-                }
-            }, 1000);
         }
     </script>
 </body>
