@@ -4,12 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>iLoveFotos - Herramientas de Imagen y PDF Online Gratis</title>
-    <meta name="description" content="Comprime, recorta, une PDFs, convierte archivos HEIC y optimiza tus documentos online y gratis.">
+    <meta name="description" content="Elimina fondos de fotos automáticamente, comprime, recorta, une PDFs y optimiza tus documentos online y gratis.">
     
     <!-- LIBRERÍAS EXTERNAS (Client-Side) -->
     <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <!-- Biblioteca de IA para Eliminar Fondo en el Navegador -->
+    <script src="https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/dist/bundle.js"></script>
     
     <!-- Cropper.js para Recortes -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
@@ -55,7 +57,8 @@
     <nav class="navbar">
         <a href="#" class="logo">iLove<span>Fotos</span></a>
         <div class="nav-links">
-            <button id="nav-pdf" class="active" onclick="switchTab('pdf')">📑 Unir/Dividir PDF</button>
+            <button id="nav-quitar-fondo" class="active" onclick="switchTab('quitar-fondo')">✨ Quitar Fondo</button>
+            <button id="nav-pdf" onclick="switchTab('pdf')">📑 PDF</button>
             <button id="nav-comprimir" onclick="switchTab('comprimir')">🗜️ Comprimir</button>
             <button id="nav-convertir" onclick="switchTab('convertir')">🔄 Convertir</button>
             <button id="nav-recortar" onclick="switchTab('recortar')">✂️ Recortar</button>
@@ -66,8 +69,19 @@
 
     <div class="container">
         
-        <!-- HERRAMIENTA NUEVA: UNIR Y DIVIDIR PDF (CLIENTE) -->
-        <div id="tab-pdf" class="tab-content active">
+        <!-- NUEVA HERRAMIENTA: QUITAR FONDO (IA CLIENTE) -->
+        <div id="tab-quitar-fondo" class="tab-content active">
+            <div class="card">
+                <h2>Eliminar Fondo</h2>
+                <p>Borra el fondo de cualquier fotografía de forma automática mediante Inteligencia Artificial en tu navegador.</p>
+                <label for="input-quitar-fondo" class="file-label" id="label-quitar-fondo">📁 Seleccionar foto</label>
+                <input type="file" id="input-quitar-fondo" accept="image/*" onchange="updateLabel('quitar-fondo')">
+                <button class="btn-action" id="btn-quitar-fondo" onclick="procesarEliminarFondo()">Eliminar Fondo Ahora</button>
+            </div>
+        </div>
+
+        <!-- HERRAMIENTA: UNIR Y DIVIDIR PDF -->
+        <div id="tab-pdf" class="tab-content">
             <div class="card">
                 <h2>Unir y Dividir PDF</h2>
                 <p>Fusiona varios archivos en uno solo o extrae páginas de manera 100% segura y local.</p>
@@ -77,14 +91,12 @@
                     <option value="dividir">Extraer una página de un PDF</option>
                 </select>
 
-                <!-- Sub-sección Unir -->
                 <div id="seccion-unir">
                     <label for="input-unir-pdf" class="file-label" id="label-unir-pdf">📁 Seleccionar archivos PDF (múltiples)</label>
                     <input type="file" id="input-unir-pdf" accept="application/pdf" multiple onchange="updateLabelPdf('unir')">
                     <button class="btn-action" onclick="procesarUnirPdf()">Unir PDFs Ahora</button>
                 </div>
 
-                <!-- Sub-sección Dividir -->
                 <div id="seccion-dividir" style="display: none;">
                     <label for="input-dividir-pdf" class="file-label" id="label-dividir-pdf">📁 Seleccionar archivo PDF</label>
                     <input type="file" id="input-dividir-pdf" accept="application/pdf" onchange="updateLabelPdf('dividir')">
@@ -95,7 +107,7 @@
             </div>
         </div>
 
-        <!-- HERRAMIENTA 1: COMPRIMIR -->
+        <!-- HERRAMIENTA: COMPRIMIR -->
         <div id="tab-comprimir" class="tab-content">
             <div class="card">
                 <h2>Comprimir Imagen</h2>
@@ -106,7 +118,7 @@
             </div>
         </div>
 
-        <!-- HERRAMIENTA 2: CONVERTIR FORMATO -->
+        <!-- HERRAMIENTA: CONVERTIR FORMATO -->
         <div id="tab-convertir" class="tab-content">
             <div class="card">
                 <h2>Convertir Formato</h2>
@@ -122,7 +134,7 @@
             </div>
         </div>
 
-        <!-- HERRAMIENTA 3: RECORTAR -->
+        <!-- HERRAMIENTA: RECORTAR -->
         <div id="tab-recortar" class="tab-content">
             <div class="card">
                 <h2>Recortar Imagen</h2>
@@ -136,7 +148,7 @@
             </div>
         </div>
 
-        <!-- HERRAMIENTA 4: OPTIMIZAR CALIDAD -->
+        <!-- HERRAMIENTA: OPTIMIZAR CALIDAD -->
         <div id="tab-mejorar" class="tab-content">
             <div class="card">
                 <h2>Optimizar Calidad</h2>
@@ -147,7 +159,7 @@
             </div>
         </div>
 
-        <!-- HERRAMIENTA 5: HEIC A JPG -->
+        <!-- HERRAMIENTA: HEIC A JPG -->
         <div id="tab-heic" class="tab-content">
             <div class="card">
                 <h2>HEIC a JPG</h2>
@@ -172,7 +184,7 @@
     <script>
         let blobDescargaLocal = null;
         let urlDescargaServidor = "";
-        let extensionDescargaLocal = "jpg";
+        let extensionDescargaLocal = "png";
         let cropperInstance = null;
 
         function switchTab(tab) {
@@ -190,6 +202,34 @@
                 label.innerText = "✅ Archivo seleccionado: " + input.files[0].name;
                 label.style.borderColor = "#34d399";
                 label.style.color = "#34d399";
+            }
+        }
+
+        // --- ELIMINAR FONDO (IA LOCAL) ---
+        async function procesarEliminarFondo() {
+            let inputElement = document.getElementById('input-quitar-fondo');
+            if (!inputElement || !inputElement.files || !inputElement.files[0]) return alert("Selecciona una foto.");
+
+            let boton = document.getElementById('btn-quitar-fondo');
+            boton.innerText = "⏳ Analizando IA (puede tardar unos segundos)...";
+            boton.disabled = true;
+            extensionDescargaLocal = 'png'; // Fondo transparente requiere PNG
+
+            try {
+                // imgly background removal se ejecuta directo en el navegador
+                const blobResultado = await imglyRemoveBackground(inputElement.files[0]);
+                blobDescargaLocal = blobResultado;
+                urlDescargaServidor = "";
+
+                document.getElementById('texto-estado').innerText = "¡Fondo eliminado con éxito!";
+                document.getElementById('seccion-anuncio').style.display = 'block';
+                arrancarTemporizadorAnuncio();
+            } catch (error) {
+                console.error(error);
+                alert("Ocurrió un error al eliminar el fondo. Intenta con otra imagen.");
+            } finally {
+                boton.innerText = "Eliminar Fondo Ahora";
+                boton.disabled = false;
             }
         }
 
@@ -221,9 +261,7 @@
 
         async function procesarUnirPdf() {
             let input = document.getElementById('input-unir-pdf');
-            if (!input.files || input.files.length < 2) {
-                return alert("Por favor, selecciona al menos 2 archivos PDF para unir.");
-            }
+            if (!input.files || input.files.length < 2) return alert("Selecciona al menos 2 archivos PDF.");
 
             try {
                 const mergedPdf = await PDFLib.PDFDocument.create();
@@ -233,7 +271,6 @@
                     let copiedPages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
                     copiedPages.forEach((page) => mergedPdf.addPage(page));
                 }
-
                 let pdfBytes = await mergedPdf.save();
                 blobDescargaLocal = new Blob([pdfBytes], { type: 'application/pdf' });
                 urlDescargaServidor = "";
@@ -243,19 +280,15 @@
                 document.getElementById('seccion-anuncio').style.display = 'block';
                 arrancarTemporizadorAnuncio();
             } catch (error) {
-                console.error(error);
                 alert("Error al unir los archivos PDF.");
             }
         }
 
         async function procesarDividirPdf() {
             let input = document.getElementById('input-dividir-pdf');
-            if (!input.files || !input.files[0]) {
-                return alert("Por favor, selecciona un archivo PDF.");
-            }
+            if (!input.files || !input.files[0]) return alert("Selecciona un archivo PDF.");
 
             let paginaNum = parseInt(document.getElementById('input-pagina-pdf').value) - 1;
-
             try {
                 let fileArrayBuffer = await input.files[0].arrayBuffer();
                 let pdfDoc = await PDFLib.PDFDocument.load(fileArrayBuffer);
@@ -277,7 +310,6 @@
                 document.getElementById('seccion-anuncio').style.display = 'block';
                 arrancarTemporizadorAnuncio();
             } catch (error) {
-                console.error(error);
                 alert("Error al extraer la página del PDF.");
             }
         }
@@ -438,7 +470,7 @@
                             let url = URL.createObjectURL(blobDescargaLocal);
                             let a = document.createElement('a');
                             a.href = url;
-                            a.download = `ilovefotos_procesado.${extensionDescargaLocal}`;
+                            a.download = `ilovefotos_sin_fondo.${extensionDescargaLocal}`;
                             a.click();
                         } else if (urlDescargaServidor) {
                             window.location.href = urlDescargaServidor;
