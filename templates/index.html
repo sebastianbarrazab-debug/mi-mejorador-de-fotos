@@ -4,25 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>iLoveFotos - Herramientas de Imagen Online Gratis</title>
-    <meta name="description" content="Mejora la calidad de tus fotos, comprime imágenes y convierte archivos HEIC online y gratis.">
+    <meta name="description" content="Comprime, recorta, mejora la calidad y convierte tus fotos online y gratis.">
     
-    <!-- LIBRERÍAS EXTERNAS -->
-    <!-- heic2any para convertir fotos de iPhone -->
+    <!-- LIBRERÍAS EXTERNAS (Client-Side) -->
     <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
-    <!-- browser-image-compression para comprimir y convertir JPG/PNG/WebP -->
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+    
+    <!-- Cropper.js para Recortes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
     <style>
         body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; text-align: center; background: #0b0f19; color: #f1f5f9; padding: 0; margin: 0; }
-        .navbar { background: #111827; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1f2937; flex-wrap: wrap; gap: 10px; }
-        .logo { font-size: 22px; font-weight: bold; color: #3b82f6; text-decoration: none; }
+        .navbar { background: #111827; padding: 15px 30px; display: flex; justify-content: center; align-items: center; border-bottom: 1px solid #1f2937; flex-wrap: wrap; gap: 15px; }
+        .logo { font-size: 22px; font-weight: bold; color: #3b82f6; text-decoration: none; margin-right: auto; }
         .logo span { color: #f1f5f9; }
         .nav-links { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
         .nav-links button { background: transparent; color: #9ca3af; border: none; font-size: 15px; cursor: pointer; padding: 8px 16px; border-radius: 6px; font-weight: 500; transition: 0.2s; }
         .nav-links button.active, .nav-links button:hover { color: #3b82f6; background: #1e293b; }
         
         .container { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; }
-        .tab-content { display: none; width: 100%; max-width: 500px; }
+        .tab-content { display: none; width: 100%; max-width: 550px; }
         .tab-content.active { display: block; }
         
         .card { background: #111827; padding: 40px 30px; border-radius: 16px; border: 1px solid #1f2937; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); text-align: center; margin-bottom: 20px; }
@@ -35,11 +37,15 @@
         
         .selector-formato { width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid #374151; font-size: 15px; cursor: pointer; }
         
-        .btn-action { background: #2563eb; color: white; padding: 14px 28px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; box-shadow: 0 4px 6px -1px rgba(37,99,235,0.4); }
+        .btn-action { background: #2563eb; color: white; padding: 14px 28px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; box-shadow: 0 4px 6px -1px rgba(37,99,235,0.4); margin-bottom: 10px; }
         .btn-action:hover { background: #1d4ed8; }
         .btn-action:disabled { background: #4b5563; cursor: not-allowed; box-shadow: none; }
         
-        .ads-section { display: none; width: 100%; max-width: 500px; padding: 20px; background: #1e293b; border-radius: 12px; border: 1px solid #374151; box-sizing: border-box; }
+        /* Contenedor del Cropper */
+        .img-container { width: 100%; max-height: 400px; margin-bottom: 20px; display: none; background: #000; border-radius: 8px; overflow: hidden; }
+        .img-container img { max-width: 100%; display: block; }
+
+        .ads-section { display: none; width: 100%; max-width: 550px; padding: 20px; background: #1e293b; border-radius: 12px; border: 1px solid #374151; box-sizing: border-box; }
         .ad-box { background: #0b0f19; padding: 40px 20px; margin: 20px 0; color: #64748b; border-radius: 8px; font-size: 14px; border: 1px dashed #334155; }
         .status-text { color: #34d399; font-weight: 600; margin-bottom: 10px; }
     </style>
@@ -49,7 +55,9 @@
     <nav class="navbar">
         <a href="#" class="logo">iLove<span>Fotos</span></a>
         <div class="nav-links">
-            <button id="nav-comprimir" class="active" onclick="switchTab('comprimir')">🗜️ Comprimir / Convertir</button>
+            <button id="nav-comprimir" class="active" onclick="switchTab('comprimir')">🗜️ Comprimir</button>
+            <button id="nav-convertir" onclick="switchTab('convertir')">🔄 Convertir</button>
+            <button id="nav-recortar" onclick="switchTab('recortar')">✂️ Recortar</button>
             <button id="nav-mejorar" onclick="switchTab('mejorar')">⚡ Optimizar Calidad</button>
             <button id="nav-heic" onclick="switchTab('heic')">📱 HEIC a JPG</button>
         </div>
@@ -57,43 +65,69 @@
 
     <div class="container">
         
-        <!-- HERRAMIENTA 1: COMPRIMIR Y CONVERTIR (NUEVA - 100% CLIENTE) -->
+        <!-- HERRAMIENTA 1: COMPRIMIR -->
         <div id="tab-comprimir" class="tab-content active">
             <div class="card">
-                <h2>Comprimir y Convertir Fotos</h2>
-                <p>Reduce el peso de tus imágenes o cambia su formato al instante. Todo se procesa de forma segura en tu dispositivo.</p>
-                
-                <select id="formato-salida" class="selector-formato">
-                    <option value="image/jpeg">Convertir a JPG (Ideal para web)</option>
-                    <option value="image/png">Convertir a PNG (Mantiene fondo transparente)</option>
-                    <option value="image/webp">Convertir a WebP (Máxima compresión)</option>
-                </select>
-
-                <label for="input-comprimir" class="file-label" id="label-comprimir">📁 Seleccionar foto (JPG, PNG, WebP)</label>
-                <input type="file" id="input-comprimir" accept="image/*" onchange="updateLabel('comprimir')">
-                <button class="btn-action" id="btn-comprimir" onclick="procesarCompresion()">Comprimir y Descargar Ahora</button>
+                <h2>Comprimir Imagen</h2>
+                <p>Reduce drásticamente el peso de tu foto (KB/MB) manteniendo la misma extensión.</p>
+                <label for="input-comprimir" class="file-label" id="label-comprimir">📁 Seleccionar foto</label>
+                <input type="file" id="input-comprimir" accept="image/jpeg, image/png, image/webp" onchange="updateLabel('comprimir')">
+                <button class="btn-action" id="btn-comprimir" onclick="procesarCompresion()">Comprimir Ahora</button>
             </div>
         </div>
 
-        <!-- HERRAMIENTA 2: OPTIMIZAR CALIDAD (SERVIDOR) -->
+        <!-- HERRAMIENTA 2: CONVERTIR FORMATO -->
+        <div id="tab-convertir" class="tab-content">
+            <div class="card">
+                <h2>Convertir Formato</h2>
+                <p>Cambia la extensión de tu imagen. Ideal para subir fotos a páginas con restricciones.</p>
+                <select id="formato-salida" class="selector-formato">
+                    <option value="image/jpeg">Convertir a JPG</option>
+                    <option value="image/png">Convertir a PNG</option>
+                    <option value="image/webp">Convertir a WebP</option>
+                </select>
+                <label for="input-convertir" class="file-label" id="label-convertir">📁 Seleccionar foto</label>
+                <input type="file" id="input-convertir" accept="image/*" onchange="updateLabel('convertir')">
+                <button class="btn-action" id="btn-convertir" onclick="procesarConversion()">Convertir Ahora</button>
+            </div>
+        </div>
+
+        <!-- HERRAMIENTA 3: RECORTAR (CROPPER) -->
+        <div id="tab-recortar" class="tab-content">
+            <div class="card">
+                <h2>Recortar Imagen</h2>
+                <p>Ajusta las dimensiones, corta bordes o centra el objetivo de tu fotografía.</p>
+                <label for="input-recortar" class="file-label" id="label-recortar">📁 Seleccionar foto</label>
+                <input type="file" id="input-recortar" accept="image/*" onchange="prepararRecortar(event)">
+                
+                <!-- Contenedor dinámico del lienzo de recorte -->
+                <div class="img-container" id="cropper-container">
+                    <img id="cropper-image" src="">
+                </div>
+
+                <button class="btn-action" id="btn-recortar" style="display:none;" onclick="procesarRecorte()">Recortar y Descargar</button>
+            </div>
+        </div>
+
+        <!-- HERRAMIENTA 4: OPTIMIZAR CALIDAD -->
         <div id="tab-mejorar" class="tab-content">
             <div class="card">
-                <h2>Optimizar Calidad de Fotos</h2>
-                <p>Aumenta los píxeles y define los bordes de tus imágenes mediante algoritmos avanzados.</p>
-                <label for="input-mejorar" class="file-label" id="label-mejorar">📁 Seleccionar o arrastrar foto</label>
+                <h2>Optimizar Calidad</h2>
+                <p>Aumenta los píxeles y define los bordes mediante algoritmos avanzados en el servidor.</p>
+                <label for="input-mejorar" class="file-label" id="label-mejorar">📁 Seleccionar foto</label>
                 <input type="file" id="input-mejorar" accept="image/*" onchange="updateLabel('mejorar')">
-                <button class="btn-action" onclick="procesarMejora()">Optimizar Calidad Ahora</button>
+                <button class="btn-action" onclick="procesarMejora()">Optimizar Calidad</button>
             </div>
         </div>
 
-        <!-- HERRAMIENTA 3: CONVERTIR HEIC (WEBASSEMBLY CLIENTE) -->
+        <!-- HERRAMIENTA 5: HEIC A JPG -->
         <div id="tab-heic" class="tab-content">
             <div class="card">
-                <h2>Convertir HEIC a JPG</h2>
-                <p>100% Privado: Tus fotos de iPhone se decodifican de forma segura en tu navegador sin subirlas a internet.</p>
+                <h2>HEIC a JPG</h2>
+                <p>Decodifica fotos de iPhone de forma segura en tu navegador sin subirlas a internet.</p>
                 <label for="input-heic" class="file-label" id="label-heic">🍏 Seleccionar archivo .heic</label>
                 <input type="file" id="input-heic" accept=".heic,.HEIC" onchange="updateLabel('heic')">
-                <button class="btn-action" id="btn-convertir-heic" onclick="procesarHeicWasm()">Convertir a JPG al Instante</button>
+                <button class="btn-action" id="btn-convertir-heic" onclick="procesarHeicWasm()">Convertir a JPG</button>
             </div>
         </div>
 
@@ -112,6 +146,7 @@
         let blobDescargaLocal = null;
         let urlDescargaServidor = "";
         let extensionDescargaLocal = "jpg";
+        let cropperInstance = null; // Variable global para la instancia de Cropper.js
 
         function switchTab(tab) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -131,56 +166,109 @@
             }
         }
 
-        // --- 1. NUEVA FUNCIÓN: COMPRIMIR Y CONVERTIR (CLIENTE) ---
+        // --- 1. COMPRIMIR ---
         async function procesarCompresion() {
             let inputElement = document.getElementById('input-comprimir');
-            if (!inputElement || !inputElement.files || !inputElement.files[0]) {
-                return alert("Por favor, selecciona una foto primero.");
-            }
-
-            let archivoOriginal = inputElement.files[0];
-            let formatoElegido = document.getElementById('formato-salida').value;
+            if (!inputElement || !inputElement.files || !inputElement.files[0]) return alert("Selecciona una foto.");
+            
+            let archivo = inputElement.files[0];
             let boton = document.getElementById('btn-comprimir');
-
-            boton.innerText = "⏳ Procesando en tu dispositivo...";
+            boton.innerText = "⏳ Comprimiendo...";
             boton.disabled = true;
-
-            // Mapear el mime-type a una extensión para la descarga
-            if (formatoElegido === 'image/png') extensionDescargaLocal = 'png';
-            else if (formatoElegido === 'image/webp') extensionDescargaLocal = 'webp';
-            else extensionDescargaLocal = 'jpg';
-
-            let opciones = {
-                maxSizeMB: 1, // Intentará reducir el peso por debajo de 1MB
-                maxWidthOrHeight: 1920, // Resolución máxima Full HD
-                useWebWorker: true,
-                fileType: formatoElegido
-            };
+            
+            extensionDescargaLocal = archivo.name.split('.').pop(); // Mantener extensión original
 
             try {
-                let archivoComprimido = await imageCompression(archivoOriginal, opciones);
-                blobDescargaLocal = archivoComprimido;
+                blobDescargaLocal = await imageCompression(archivo, { maxSizeMB: 0.8, useWebWorker: true });
                 urlDescargaServidor = "";
-
-                let tamañoFinalMB = (archivoComprimido.size / 1024 / 1024).toFixed(2);
-                document.getElementById('texto-estado').innerText = `¡Listo! Tamaño reducido a ${tamañoFinalMB} MB`;
+                let mbFinal = (blobDescargaLocal.size / 1024 / 1024).toFixed(2);
+                document.getElementById('texto-estado').innerText = `¡Comprimido a ${mbFinal} MB!`;
                 document.getElementById('seccion-anuncio').style.display = 'block';
                 arrancarTemporizadorAnuncio();
             } catch (error) {
-                console.error(error);
-                alert("Error al comprimir o convertir la imagen.");
+                alert("Error al comprimir la imagen.");
             } finally {
-                boton.innerText = "Comprimir y Descargar Ahora";
+                boton.innerText = "Comprimir Ahora";
                 boton.disabled = false;
             }
         }
 
-        // --- 2. FUNCIÓN: OPTIMIZAR CALIDAD (SERVIDOR) ---
+        // --- 2. CONVERTIR FORMATO ---
+        async function procesarConversion() {
+            let inputElement = document.getElementById('input-convertir');
+            if (!inputElement || !inputElement.files || !inputElement.files[0]) return alert("Selecciona una foto.");
+            
+            let formato = document.getElementById('formato-salida').value;
+            let boton = document.getElementById('btn-convertir');
+            boton.innerText = "⏳ Convirtiendo...";
+            boton.disabled = true;
+            
+            extensionDescargaLocal = formato === 'image/png' ? 'png' : (formato === 'image/webp' ? 'webp' : 'jpg');
+
+            try {
+                // Forzar la conversión de tipo sin comprimir agresivamente
+                blobDescargaLocal = await imageCompression(inputElement.files[0], { 
+                    maxSizeMB: 5, 
+                    useWebWorker: true, 
+                    fileType: formato 
+                });
+                urlDescargaServidor = "";
+                document.getElementById('texto-estado').innerText = `¡Convertido a ${extensionDescargaLocal.toUpperCase()}!`;
+                document.getElementById('seccion-anuncio').style.display = 'block';
+                arrancarTemporizadorAnuncio();
+            } catch (error) {
+                alert("Error al convertir la imagen.");
+            } finally {
+                boton.innerText = "Convertir Ahora";
+                boton.disabled = false;
+            }
+        }
+
+        // --- 3. RECORTAR (CROPPER.JS) ---
+        function prepararRecortar(event) {
+            updateLabel('recortar');
+            let input = event.target;
+            if (input.files && input.files[0]) {
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    let imagenCropper = document.getElementById('cropper-image');
+                    imagenCropper.src = e.target.result;
+                    document.getElementById('cropper-container').style.display = 'block';
+                    document.getElementById('btn-recortar').style.display = 'block';
+
+                    // Destruir instancia previa si existe para evitar solapamientos
+                    if (cropperInstance) cropperInstance.destroy();
+                    
+                    cropperInstance = new Cropper(imagenCropper, {
+                        viewMode: 2, // Restringe el recorte dentro de los límites de la imagen
+                        autoCropArea: 0.8,
+                        responsive: true
+                    });
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function procesarRecorte() {
+            if (!cropperInstance) return;
+            let canvas = cropperInstance.getCroppedCanvas();
+            
+            // Convertir el canvas a un archivo descargable
+            canvas.toBlob((blob) => {
+                blobDescargaLocal = blob;
+                urlDescargaServidor = "";
+                extensionDescargaLocal = "png"; // PNG asegura que no haya pérdida en el recorte
+                
+                document.getElementById('texto-estado').innerText = "¡Recorte aplicado con éxito!";
+                document.getElementById('seccion-anuncio').style.display = 'block';
+                arrancarTemporizadorAnuncio();
+            }, 'image/png');
+        }
+
+        // --- 4. MEJORAR (SERVIDOR) ---
         async function procesarMejora() {
             let inputElement = document.getElementById('input-mejorar');
-            if (!inputElement || !inputElement.files || !inputElement.files[0]) {
-                return alert("Por favor, selecciona una foto primero.");
-            }
+            if (!inputElement || !inputElement.files || !inputElement.files[0]) return alert("Selecciona una foto.");
 
             let data = new FormData();
             data.append("foto", inputElement.files[0]);
@@ -191,62 +279,52 @@
             try {
                 let res = await fetch('/procesar', { method: 'POST', body: data });
                 let json = await res.json();
-
                 if (json.descarga_url) {
                     urlDescargaServidor = json.descarga_url;
                     blobDescargaLocal = null;
                     arrancarTemporizadorAnuncio();
                 } else {
-                    alert("Error en el servidor. Puede que la imagen sea demasiado grande.");
-                    document.getElementById('seccion-anuncio').style.display = 'none';
+                    alert("Error en el servidor.");
                 }
             } catch (error) {
-                console.error(error);
                 alert("Error de conexión con el servidor.");
-                document.getElementById('seccion-anuncio').style.display = 'none';
             }
         }
 
-        // --- 3. FUNCIÓN: CONVERTIR HEIC (CLIENTE) ---
+        // --- 5. HEIC A JPG ---
         async function procesarHeicWasm() {
             let inputElement = document.getElementById('input-heic');
-            if (!inputElement || !inputElement.files || !inputElement.files[0]) {
-                return alert("Por favor, selecciona un archivo .heic primero.");
-            }
+            if (!inputElement || !inputElement.files || !inputElement.files[0]) return alert("Selecciona un .heic");
 
-            let botonConvertir = document.getElementById('btn-convertir-heic');
-            botonConvertir.innerText = "⏳ Decodificando en el navegador...";
-            botonConvertir.disabled = true;
-            extensionDescargaLocal = 'jpg'; // El resultado de heic2any aquí es jpeg
+            let boton = document.getElementById('btn-convertir-heic');
+            boton.innerText = "⏳ Decodificando...";
+            boton.disabled = true;
+            extensionDescargaLocal = 'jpg';
 
             try {
-                let blobJpg = await heic2any({
-                    blob: inputElement.files[0],
-                    toType: "image/jpeg",
-                    quality: 0.9
-                });
-
+                let blobJpg = await heic2any({ blob: inputElement.files[0], toType: "image/jpeg", quality: 0.9 });
                 blobDescargaLocal = Array.isArray(blobJpg) ? blobJpg[0] : blobJpg;
                 urlDescargaServidor = "";
-
-                document.getElementById('texto-estado').innerText = "¡Conversión Privada Completada!";
+                document.getElementById('texto-estado').innerText = "¡Conversión Completada!";
                 document.getElementById('seccion-anuncio').style.display = 'block';
                 arrancarTemporizadorAnuncio();
             } catch (error) {
-                console.error(error);
-                alert("Error. Asegúrate de subir un archivo .heic original de Apple.");
+                alert("Error. Asegúrate de subir un archivo .heic original.");
             } finally {
-                botonConvertir.innerText = "Convertir a JPG al Instante";
-                botonConvertir.disabled = false;
+                boton.innerText = "Convertir a JPG";
+                boton.disabled = false;
             }
         }
 
-        // --- TEMPORIZADOR DE DESCARGA GLOBAL ---
+        // --- TEMPORIZADOR DE DESCARGA ---
         function arrancarTemporizadorAnuncio() {
             let segundos = 10;
             let btnDescargar = document.getElementById('btn-descargar');
             btnDescargar.disabled = true;
             btnDescargar.innerText = `Espera ${segundos}s...`;
+
+            // Scroll automático a la zona de descarga/anuncios
+            document.getElementById('seccion-anuncio').scrollIntoView({ behavior: 'smooth' });
 
             let timer = setInterval(() => {
                 segundos--;
