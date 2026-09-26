@@ -52,10 +52,13 @@
         input:checked + .slider-switch { background-color: #2563eb; }
         input:checked + .slider-switch:before { transform: translateX(20px); }
 
-        /* Contenedor del Canvas con vista transparente (Ajedrez) */
+        /* Contenedor principal con fondo de ajedrez */
         .canvas-wrapper { position: relative; width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid #374151; display: flex; justify-content: center; align-items: center; background-color: #1a1a1a; background-image: linear-gradient(45deg, #262626 25%, transparent 25%), linear-gradient(-45deg, #262626 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #262626 75%), linear-gradient(-45deg, transparent 75%, #262626 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; }
-        #canvas-editor { display: block; max-width: 100%; cursor: crosshair; touch-action: none; position: relative; z-index: 1; }
-        #canvas-overlay { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 2; }
+        
+        /* Subcontenedor para alineación 1:1 exacta del puntero y la estela */
+        .canvas-stage { position: relative; display: inline-block; max-width: 100%; vertical-align: top; }
+        #canvas-editor { display: block; max-width: 100%; height: auto; cursor: crosshair; touch-action: none; position: relative; z-index: 1; }
+        #canvas-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
 
         .ads-section { display: none; width: 100%; max-width: 680px; padding: 20px; background: #1e293b; border-radius: 12px; border: 1px solid #374151; box-sizing: border-box; }
         .status-text { color: #34d399; font-weight: 600; margin-bottom: 10px; }
@@ -82,7 +85,7 @@
         <div id="tab-borrador" class="tab-content active">
             <div class="card">
                 <h2>Eliminador de Fondo y Pincel Inteligente</h2>
-                <p>Haz clic sobre el color que deseas borrar. El pincel se fijará en esa tonalidad y sus subvariantes sin afectar los objetos cercanos.</p>
+                <p>Haz clic sobre el color que deseas borrar. El pincel fijará ese tono de referencia sin borrar colores diferentes.</p>
                 
                 <label for="input-borrador" class="file-label" id="label-borrador">📁 Seleccionar foto</label>
                 <input type="file" id="input-borrador" accept="image/*" onchange="prepararImagen(event)">
@@ -125,13 +128,14 @@
                             <button class="btn-mode" style="padding: 6px 12px; font-size: 13px; border-color: #475569;" id="btn-undo" onclick="deshacerAccion()" disabled>
                                 ↩️ Deshacer
                             </button>
-                            <span style="font-size: 12px; color: #94a3b8;">Estela roja muestra el trazo en tiempo real</span>
                         </div>
                     </div>
 
                     <div class="canvas-wrapper" id="canvas-container">
-                        <canvas id="canvas-editor"></canvas>
-                        <canvas id="canvas-overlay"></canvas>
+                        <div class="canvas-stage">
+                            <canvas id="canvas-editor"></canvas>
+                            <canvas id="canvas-overlay"></canvas>
+                        </div>
                     </div>
                     
                     <button class="btn-action" style="margin-top: 20px;" onclick="guardarResultadoFinal()">📥 Descargar Imagen PNG Transparente</button>
@@ -250,7 +254,7 @@
         }
 
         // =========================================================================
-        // MOTOR DE TRANSPARENCIA, ESTELA ROJA Y PINCEL MÁGICO FIJO
+        // MOTOR DE TRANSPARENCIA Y CURSOR INDICADOR ALINEADO
         // =========================================================================
         let canvas = document.getElementById('canvas-editor');
         let ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -263,7 +267,7 @@
 
         let modoActual = 'borrar'; 
         let isDrawing = false;
-        let strokeTargetColor = null; // Guardará el color base al hacer clic inicial
+        let strokeTargetColor = null;
         let historialEstados = [];
 
         function setModo(modo) {
@@ -360,11 +364,17 @@
             guardarEstadoHistorial();
         }
 
-        // --- PINCEL MÁGICO FIJO Y ESTELA ROJA ---
+        // --- CÁLCULO DE POSICIÓN DEL PUNTERO 1:1 ---
         function getPointerPos(e) {
             let rect = canvas.getBoundingClientRect();
-            let clientX = e.clientX || (e.touches && e.touches[0].clientX);
-            let clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            let clientX = e.clientX;
+            let clientY = e.clientY;
+
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+
             return {
                 x: Math.floor((clientX - rect.left) * (canvas.width / rect.width)),
                 y: Math.floor((clientY - rect.top) * (canvas.height / rect.height))
@@ -379,21 +389,24 @@
             isDrawing = true;
             let pos = getPointerPos(e);
             
-            // Obtener el color objetivo EXACTO en el punto donde se inició el clic
+            // Fija el color de referencia al hacer clic inicial
             let sampleSource = modoActual === 'borrar' ? ctx.getImageData(pos.x, pos.y, 1, 1).data : ctxOriginal.getImageData(pos.x, pos.y, 1, 1).data;
             strokeTargetColor = { r: sampleSource[0], g: sampleSource[1], b: sampleSource[2] };
 
-            ctxOverlay.clearRect(0, 0, overlay.width, overlay.height);
             aplicarTrazoPincel(pos);
+            dibujarCursorRed(pos);
         }
 
         function draw(e) {
             let pos = getPointerPos(e);
-            dibujarCursorRed(pos);
+            
+            if (isDrawing) {
+                e.preventDefault();
+                aplicarTrazoPincel(pos);
+            }
 
-            if (!isDrawing) return;
-            e.preventDefault();
-            aplicarTrazoPincel(pos);
+            // Dibuja la circunferencia roja sobre el puntero actual en cada movimiento
+            dibujarCursorRed(pos);
         }
 
         function stopDrawing() {
@@ -404,15 +417,14 @@
             guardarEstadoHistorial();
         }
 
-        // Dibuja el círculo del cursor y la estela roja transparente
+        // Dibuja de forma limpia únicamente la circunferencia del puntero actual
         function dibujarCursorRed(pos) {
-            if (isDrawing) return; // Mientras dibuja la estela roja se renderiza en aplicarTrazoPincel
             let radius = parseInt(document.getElementById('brush-size').value);
             ctxOverlay.clearRect(0, 0, overlay.width, overlay.height);
             ctxOverlay.beginPath();
             ctxOverlay.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
-            ctxOverlay.fillStyle = 'rgba(239, 68, 68, 0.35)';
-            ctxOverlay.strokeStyle = 'rgba(239, 68, 68, 0.8)';
+            ctxOverlay.fillStyle = 'rgba(239, 68, 68, 0.3)';
+            ctxOverlay.strokeStyle = 'rgba(239, 68, 68, 0.85)';
             ctxOverlay.lineWidth = 1.5;
             ctxOverlay.fill();
             ctxOverlay.stroke();
@@ -436,12 +448,6 @@
             let minY = Math.max(0, pos.y - radius);
             let maxY = Math.min(height - 1, pos.y + radius);
 
-            // Dibuja la estela roja persistente durante el trazo
-            ctxOverlay.beginPath();
-            ctxOverlay.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
-            ctxOverlay.fillStyle = 'rgba(239, 68, 68, 0.35)';
-            ctxOverlay.fill();
-
             for (let y = minY; y <= maxY; y++) {
                 for (let x = minX; x <= maxX; x++) {
                     let dx = x - pos.x;
@@ -455,12 +461,11 @@
                             let currB = modoActual === 'borrar' ? dataCurrent[idx+2] : dataOrig[idx+2];
 
                             let dist = colorDist(currR, currG, currB, strokeTargetColor.r, strokeTargetColor.g, strokeTargetColor.b);
-                            // Si supera la tolerancia fijada, no borra ese píxel
                             if (dist > tolerance) continue; 
                         }
 
                         if (modoActual === 'borrar') {
-                            dataCurrent[idx + 3] = 0; // Se vuelve transparente (Alfa = 0)
+                            dataCurrent[idx + 3] = 0; // Transparencia pura
                         } else {
                             dataCurrent[idx] = dataOrig[idx];
                             dataCurrent[idx + 1] = dataOrig[idx + 1];
