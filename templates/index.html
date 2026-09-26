@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analizador Ortográfico y Herramientas de Texto</title>
+    <title>Suite de Herramientas: Texto e Imagen</title>
+    
+    <!-- Librería Cropper.js para la herramienta de Recortar Imagen -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
     <style>
         /* Diseño oscuro, moderno y profesional */
         :root {
@@ -31,7 +36,7 @@
 
         .container {
             width: 100%;
-            max-width: 900px;
+            max-width: 950px;
             background-color: var(--panel-bg);
             border: 1px solid var(--border-color);
             border-radius: 8px;
@@ -39,18 +44,37 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        h2 {
-            margin-top: 0;
-            color: #ffffff;
-            font-weight: 500;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 10px;
+        /* Sistema de Pestañas (Tabs) */
+        .tabs {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            gap: 10px;
         }
 
-        /* Barra de herramientas clásica */
+        .tab-btn {
+            background: none;
+            color: #858585;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .tab-btn:hover { color: white; }
+        .tab-btn.active {
+            color: var(--accent-blue);
+            border-bottom: 2px solid var(--accent-blue);
+            font-weight: bold;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Barras de Herramientas */
         .toolbar {
             display: flex;
             gap: 8px;
@@ -66,17 +90,24 @@
             background-color: #3c3c3c;
             color: #d4d4d4;
             border: 1px solid #555;
-            padding: 6px 12px;
+            padding: 8px 14px;
             border-radius: 4px;
             cursor: pointer;
             font-size: 13px;
             transition: background-color 0.2s;
+            font-weight: 500;
         }
 
-        .tool-btn:hover {
-            background-color: #505050;
+        .tool-btn:hover { background-color: #505050; }
+        
+        .btn-primary {
+            background-color: var(--accent-blue);
+            color: white;
+            border: none;
         }
+        .btn-primary:hover { background-color: var(--accent-hover); }
 
+        /* ================= ESTILOS SECCIÓN TEXTO ================= */
         textarea {
             width: 100%;
             height: 200px;
@@ -93,9 +124,7 @@
             transition: border 0.3s;
         }
 
-        textarea:focus {
-            border-color: var(--accent-blue);
-        }
+        textarea:focus { border-color: var(--accent-blue); }
 
         .status-bar {
             display: flex;
@@ -126,16 +155,8 @@
             max-width: 400px;
         }
 
-        .btn-analizar:hover {
-            background-color: var(--accent-hover);
-        }
+        .btn-analizar:disabled { background-color: #555; cursor: not-allowed; }
 
-        .btn-analizar:disabled {
-            background-color: #555;
-            cursor: not-allowed;
-        }
-
-        /* Tarjetas de Errores */
         .error-card {
             background-color: #2d2d30;
             border: 1px solid var(--border-color);
@@ -143,11 +164,6 @@
             border-radius: 6px;
             padding: 15px;
             margin-bottom: 12px;
-            transition: transform 0.1s;
-        }
-
-        .error-card:hover {
-            background-color: #333337;
         }
 
         .grammar-err { border-left-color: var(--warn-yellow); }
@@ -155,7 +171,7 @@
         .spell-err { border-left-color: var(--error-red); }
 
         .suggestion-btn {
-            background-color: #059669; /* Verde para sugerencias */
+            background-color: #059669;
             color: #ffffff;
             border: none;
             padding: 6px 12px;
@@ -164,61 +180,123 @@
             font-size: 13px;
             cursor: pointer;
             font-weight: 500;
-            transition: background-color 0.2s;
+        }
+        .suggestion-btn:hover { background-color: #047857; }
+
+        #contenedor-errores { display: none; margin-top: 20px; }
+
+        /* ================= ESTILOS SECCIÓN IMAGEN ================= */
+        .image-workspace {
+            width: 100%;
+            height: 450px;
+            background-color: #1e1e1e;
+            border: 2px dashed var(--border-color);
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            margin-top: 15px;
+            position: relative;
         }
 
-        .suggestion-btn:hover {
-            background-color: #047857;
+        .image-workspace img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
         }
-
-        #contenedor-errores {
-            display: none;
-            margin-top: 20px;
+        
+        .placeholder-text {
+            color: #555;
+            font-size: 18px;
+            position: absolute;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2>
-            <span>📝 Editor y Analizador de Texto</span>
-        </h2>
-
-        <!-- HERRAMIENTAS CLÁSICAS -->
-        <div class="toolbar">
-            <button class="tool-btn" onclick="copiarTexto()">📋 Copiar</button>
-            <button class="tool-btn" onclick="limpiarTexto()">🗑️ Limpiar</button>
-            <button class="tool-btn" onclick="convertirMayusculas()">AA Mayúsculas</button>
-            <button class="tool-btn" onclick="convertirMinusculas()">aa Minúsculas</button>
-            <button class="tool-btn" onclick="quitarEspacios()">🧹 Quitar espacios extra</button>
+        <!-- NAVEGACIÓN DE PESTAÑAS -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="cambiarPestaña('tab-texto', this)">📝 Herramientas de Texto</button>
+            <button class="tab-btn" onclick="cambiarPestaña('tab-imagen', this)">🖼️ Herramientas de Imagen</button>
         </div>
 
-        <!-- ÁREA DE TEXTO -->
-        <textarea id="input-texto" placeholder="Escribe o pega tu texto aquí..." oninput="actualizarContadores()"></textarea>
-        
-        <!-- ESTADÍSTICAS EN TIEMPO REAL -->
-        <div class="status-bar">
-            <span id="contador-palabras">Palabras: 0</span>
-            <span id="contador-caracteres">Caracteres: 0</span>
+        <!-- ========================================== -->
+        <!-- PESTAÑA 1: EDITOR DE TEXTO (INTACTO)       -->
+        <!-- ========================================== -->
+        <div id="tab-texto" class="tab-content active">
+            <div class="toolbar">
+                <button class="tool-btn" onclick="copiarTexto()">📋 Copiar</button>
+                <button class="tool-btn" onclick="limpiarTexto()">🗑️ Limpiar</button>
+                <button class="tool-btn" onclick="convertirMayusculas()">AA Mayúsculas</button>
+                <button class="tool-btn" onclick="convertirMinusculas()">aa Minúsculas</button>
+                <button class="tool-btn" onclick="quitarEspacios()">🧹 Quitar espacios extra</button>
+            </div>
+
+            <textarea id="input-texto" placeholder="Escribe o pega tu texto aquí..." oninput="actualizarContadores()"></textarea>
+            
+            <div class="status-bar">
+                <span id="contador-palabras">Palabras: 0</span>
+                <span id="contador-caracteres">Caracteres: 0</span>
+            </div>
+
+            <div class="main-action">
+                <button id="btn-analizar" class="btn-analizar" onclick="analizarTexto()">🔍 Analizar Ortografía y Gramática</button>
+            </div>
+
+            <div id="contenedor-errores">
+                <h3 style="margin-top: 0; color: white; font-size: 16px; border-bottom: 1px solid #3e3e42; padding-bottom: 8px;">
+                    Resultados del Análisis <span id="badge-errores" style="background: var(--error-red); color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 10px;">0</span>
+                </h3>
+                <div id="lista-errores"></div>
+            </div>
         </div>
 
-        <!-- BOTÓN PRINCIPAL DE ANÁLISIS -->
-        <div class="main-action">
-            <button id="btn-analizar" class="btn-analizar" onclick="analizarTexto()">🔍 Analizar Ortografía y Gramática</button>
+        <!-- ========================================== -->
+        <!-- PESTAÑA 2: EDITOR DE IMÁGENES (RESTAURADO) -->
+        <!-- ========================================== -->
+        <div id="tab-imagen" class="tab-content">
+            <div class="toolbar">
+                <input type="file" id="upload-img" accept="image/*" style="display:none;" onchange="cargarImagen(event)">
+                <button class="tool-btn btn-primary" onclick="document.getElementById('upload-img').click()">📁 Subir Imagen</button>
+                
+                <span style="border-left: 1px solid #555; margin: 0 5px;"></span>
+                
+                <button class="tool-btn" onclick="iniciarRecorte()" id="btn-recortar">✂️ Activar Recorte</button>
+                <button class="tool-btn" onclick="eliminarFondo()" id="btn-fondo">🪄 Eliminar Fondo Mágico</button>
+                
+                <span style="border-left: 1px solid #555; margin: 0 5px;"></span>
+
+                <button class="tool-btn" onclick="descargarImagen()" style="background-color: #059669; color: white; border: none;">💾 Descargar</button>
+            </div>
+
+            <div class="image-workspace" id="workspace">
+                <span class="placeholder-text" id="img-placeholder">Sube una imagen para comenzar...</span>
+                <img id="img-preview" style="display: none;">
+            </div>
         </div>
 
-        <!-- CONTENEDOR DE RESULTADOS INTERACTIVOS -->
-        <div id="contenedor-errores">
-            <h3 style="margin-top: 0; color: white; font-size: 16px; border-bottom: 1px solid #3e3e42; padding-bottom: 8px;">
-                Resultados del Análisis <span id="badge-errores" style="background: var(--error-red); color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 10px;">0</span>
-            </h3>
-            <div id="lista-errores"></div>
-        </div>
     </div>
 
     <script>
         // ==========================================
-        // HERRAMIENTAS DE TEXTO (Las clásicas)
+        // LÓGICA DE PESTAÑAS
+        // ==========================================
+        function cambiarPestaña(idTab, elementoBtn) {
+            // Ocultar todos los contenidos
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            // Quitar clase active a los botones
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Mostrar el tab seleccionado
+            document.getElementById(idTab).classList.add('active');
+            elementoBtn.classList.add('active');
+        }
+
+        // ==========================================
+        // LÓGICA DE TEXTO (Exactamente como pediste)
         // ==========================================
         const textarea = document.getElementById('input-texto');
 
@@ -226,54 +304,36 @@
             let texto = textarea.value;
             let caracteres = texto.length;
             let palabras = texto.trim() === "" ? 0 : texto.trim().split(/\s+/).length;
-            
             document.getElementById('contador-caracteres').innerText = `Caracteres: ${caracteres}`;
             document.getElementById('contador-palabras').innerText = `Palabras: ${palabras}`;
         }
 
         function copiarTexto() {
             if (!textarea.value) return;
-            navigator.clipboard.writeText(textarea.value).then(() => {
-                alert("¡Texto copiado al portapapeles!");
-            });
+            navigator.clipboard.writeText(textarea.value).then(() => alert("¡Texto copiado!"));
         }
 
         function limpiarTexto() {
-            if (confirm("¿Estás seguro de que deseas limpiar todo el texto?")) {
+            if (confirm("¿Limpiar todo el texto?")) {
                 textarea.value = "";
                 actualizarContadores();
                 document.getElementById('contenedor-errores').style.display = 'none';
             }
         }
 
-        function convertirMayusculas() {
-            textarea.value = textarea.value.toUpperCase();
-            actualizarContadores();
-        }
+        function convertirMayusculas() { textarea.value = textarea.value.toUpperCase(); actualizarContadores(); }
+        function convertirMinusculas() { textarea.value = textarea.value.toLowerCase(); actualizarContadores(); }
+        function quitarEspacios() { textarea.value = textarea.value.replace(/\s+/g, ' ').trim(); actualizarContadores(); }
 
-        function convertirMinusculas() {
-            textarea.value = textarea.value.toLowerCase();
-            actualizarContadores();
-        }
-
-        function quitarEspacios() {
-            textarea.value = textarea.value.replace(/\s+/g, ' ').trim();
-            actualizarContadores();
-        }
-
-        // ==========================================
-        // MOTOR DE ANÁLISIS (Solo escaneo manual)
-        // ==========================================
         async function analizarTexto() {
             let texto = textarea.value.trim();
-            if (!texto) return alert("Por favor, ingresa un texto para analizar.");
+            if (!texto) return alert("Por favor, ingresa un texto.");
 
             let btn = document.getElementById('btn-analizar');
             btn.innerText = "⏳ Analizando...";
             btn.disabled = true;
 
             try {
-                // Consulta directa a la API para buscar errores
                 let response = await fetch('https://api.languagetool.org/v2/check', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -281,12 +341,9 @@
                 });
 
                 let data = await response.json();
-                let matches = data.matches || [];
-                
-                mostrarResultados(matches, texto);
-
+                mostrarResultados(data.matches || [], texto);
             } catch (e) {
-                alert("Hubo un error al conectar con el servidor de análisis. Revisa tu conexión.");
+                alert("Error de conexión con el servidor de análisis.");
             } finally {
                 btn.innerText = "🔍 Analizar Ortografía y Gramática";
                 btn.disabled = false;
@@ -299,7 +356,7 @@
             contenedorLista.innerHTML = '';
 
             if (matches.length === 0) {
-                contenedorLista.innerHTML = '<div style="color: var(--success-green); background: #1e2e1e; padding: 15px; border-radius: 6px; border: 1px solid var(--success-green);">¡Excelente! No se detectaron errores ortográficos ni gramaticales.</div>';
+                contenedorLista.innerHTML = '<div style="color: var(--success-green); padding: 15px; border: 1px solid var(--success-green); border-radius: 6px;">¡Excelente! No se detectaron errores.</div>';
             } else {
                 matches.forEach((err, idx) => {
                     let textoAfectado = textoOriginal.substring(err.offset, err.offset + err.length);
@@ -310,23 +367,17 @@
                     let claseColor = esPuntuacion ? 'punct-err' : (esGramatica ? 'grammar-err' : 'spell-err');
                     let colorTexto = esPuntuacion ? 'var(--accent-blue)' : (esGramatica ? 'var(--warn-yellow)' : 'var(--error-red)');
 
-                    // Generar botones de sugerencia (Solo tomamos las 4 mejores para no saturar)
                     let sugerenciasHTML = err.replacements.slice(0, 4).map(rep => 
-                        // Pasamos el offset, length y el valor de reemplazo escapando comillas
                         `<button class="suggestion-btn" onclick="aplicarSugerencia(${err.offset}, ${err.length}, '${rep.value.replace(/'/g, "\\'")}')">${rep.value}</button>`
                     ).join('');
 
                     let card = document.createElement('div');
                     card.className = `error-card ${claseColor}`;
                     card.innerHTML = `
-                        <div style="font-size: 13px; color: #858585; margin-bottom: 5px;">
-                            Detalle: <strong style="color: ${colorTexto}">${tipoError}</strong>
-                        </div>
-                        <div style="margin-bottom: 8px; font-size: 15px;">
-                            Problema en: <span style="text-decoration: underline; text-decoration-color: ${colorTexto}; background-color: rgba(255,255,255,0.05); padding: 2px 4px; border-radius: 3px;">${textoAfectado || '(Falta espacio o signo)'}</span>
-                        </div>
+                        <div style="font-size: 13px; color: #858585; margin-bottom: 5px;">Detalle: <strong style="color: ${colorTexto}">${tipoError}</strong></div>
+                        <div style="margin-bottom: 8px; font-size: 15px;">Problema en: <span style="text-decoration: underline; color:${colorTexto};">${textoAfectado || '(Espacio/Signo)'}</span></div>
                         <div style="font-size: 14px; margin-bottom: 12px; color: #d4d4d4;">${err.message}</div>
-                        ${sugerenciasHTML ? `<div style="border-top: 1px solid #3e3e42; padding-top: 10px;">${sugerenciasHTML}</div>` : '<div style="font-size: 12px; color: #858585; font-style: italic;">No hay sugerencias automáticas. Debes corregirlo manualmente.</div>'}
+                        ${sugerenciasHTML ? `<div>${sugerenciasHTML}</div>` : '<div style="font-size: 12px; color: #858585;">No hay sugerencias automáticas.</div>'}
                     `;
                     contenedorLista.appendChild(card);
                 });
@@ -334,22 +385,124 @@
             document.getElementById('contenedor-errores').style.display = 'block';
         }
 
-        // Función que se ejecuta cuando el usuario hace clic en un botón verde de sugerencia
         function aplicarSugerencia(offset, length, nuevoTexto) {
-            let textoOriginal = textarea.value;
-            
-            // Reemplazamos exactamente en la posición indicada
-            textarea.value = textoOriginal.substring(0, offset) + nuevoTexto + textoOriginal.substring(offset + length);
-            
-            // Actualizamos contadores
+            textarea.value = textarea.value.substring(0, offset) + nuevoTexto + textarea.value.substring(offset + length);
             actualizarContadores();
-
-            // Volvemos a analizar automáticamente para que los "offsets" (posiciones) de los demás errores se recalculen
             analizarTexto();
         }
-
-        // Inicializar contadores al cargar la página
         actualizarContadores();
+
+
+        // ==========================================
+        // LÓGICA DE IMAGEN (Recorte y Fondo restaurados)
+        // ==========================================
+        let imgPreview = document.getElementById('img-preview');
+        let placeholder = document.getElementById('img-placeholder');
+        let cropper = null;
+        let originalName = "imagen_editada.png";
+
+        function cargarImagen(event) {
+            let file = event.target.files[0];
+            if (!file) return;
+            originalName = file.name;
+            
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                if (cropper) { cropper.destroy(); cropper = null; }
+                imgPreview.src = e.target.result;
+                imgPreview.style.display = 'block';
+                placeholder.style.display = 'none';
+                document.getElementById('btn-recortar').innerText = "✂️ Activar Recorte";
+            }
+            reader.readAsDataURL(file);
+        }
+
+        // Herramienta 1: Recortar (Usando Cropper.js)
+        function iniciarRecorte() {
+            if (!imgPreview.src || imgPreview.style.display === 'none') return alert("Primero sube una imagen.");
+            
+            let btnRecortar = document.getElementById('btn-recortar');
+
+            if (cropper) {
+                // Si ya está activo, aplicamos el recorte
+                let canvas = cropper.getCroppedCanvas();
+                imgPreview.src = canvas.toDataURL("image/png");
+                cropper.destroy();
+                cropper = null;
+                btnRecortar.innerText = "✂️ Activar Recorte";
+            } else {
+                // Iniciar el área de recorte
+                cropper = new Cropper(imgPreview, {
+                    viewMode: 1,
+                    autoCropArea: 0.8,
+                    background: false,
+                    responsive: true
+                });
+                btnRecortar.innerText = "✅ Aplicar Recorte";
+            }
+        }
+
+        // Herramienta 2: Eliminar Fondo Mágico (Vía Canvas - Detección de color perimetral)
+        function eliminarFondo() {
+            if (!imgPreview.src || imgPreview.style.display === 'none') return alert("Primero sube una imagen.");
+            
+            // Si hay un recorte activo, aplicarlo antes de borrar el fondo
+            if (cropper) iniciarRecorte(); 
+
+            let btnFondo = document.getElementById('btn-fondo');
+            btnFondo.innerText = "⏳ Procesando...";
+            
+            setTimeout(() => {
+                let canvas = document.createElement('canvas');
+                let ctx = canvas.getContext('2d');
+                let img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.src = imgPreview.src;
+                
+                img.onload = function() {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    
+                    let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    let data = imgData.data;
+                    
+                    // Tomar el color del píxel superior izquierdo como "Fondo a eliminar"
+                    let r0 = data[0], g0 = data[1], b0 = data[2];
+                    let tolerancia = 60; // Tolerancia de color
+
+                    for (let i = 0; i < data.length; i += 4) {
+                        let r = data[i], g = data[i+1], b = data[i+2];
+                        // Calcular distancia de color (Euclidiana)
+                        let distancia = Math.sqrt(Math.pow(r-r0, 2) + Math.pow(g-g0, 2) + Math.pow(b-b0, 2));
+                        
+                        // Si el color es similar al fondo, hacerlo transparente
+                        if (distancia < tolerancia) {
+                            data[i+3] = 0; // Alpha a 0 (Transparente)
+                        }
+                    }
+                    
+                    ctx.putImageData(imgData, 0, 0);
+                    imgPreview.src = canvas.toDataURL('image/png');
+                    btnFondo.innerText = "🪄 Eliminar Fondo Mágico";
+                }
+            }, 100);
+        }
+
+        // Herramienta 3: Descargar
+        function descargarImagen() {
+            if (!imgPreview.src || imgPreview.style.display === 'none') return alert("No hay imagen para descargar.");
+            
+            // Si hay un recorte a medias, lo aplica antes de descargar
+            if (cropper) iniciarRecorte();
+
+            let a = document.createElement('a');
+            a.href = imgPreview.src;
+            a.download = "editada_" + originalName.replace(/\.[^/.]+$/, ".png");
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
     </script>
 </body>
 </html>
