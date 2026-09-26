@@ -11,6 +11,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
+    <!-- LIBRERÍA DE IA PARA PUNTUACIÓN AUTOMÁTICA (Transformers.js) -->
+    <script type="module">
+        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js';
+        window.transformersPipeline = pipeline;
+    </script>
+
     <style>
         body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; text-align: center; background: #0b0f19; color: #f1f5f9; padding: 0; margin: 0; }
         .navbar { background: #111827; padding: 15px 30px; display: flex; justify-content: center; align-items: center; border-bottom: 1px solid #1f2937; flex-wrap: wrap; gap: 15px; }
@@ -103,7 +109,7 @@
                 </div>
 
                 <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-                    <button id="btn-analizar" class="btn-action" style="margin-bottom: 0; flex: 2;" onclick="analizarTexto()">🔍 Revisar Ortografía</button>
+                    <button id="btn-analizar" class="btn-action" style="margin-bottom: 0; flex: 2;" onclick="autocompletarSignosYAnalizar()">✨ Auto-Puntuar y Revisar</button>
                     
                     <select id="target-lang" class="selector-formato" style="margin-bottom: 0; flex: 1; min-width: 120px;">
                         <option value="es">Al Español</option>
@@ -244,10 +250,49 @@
 
     <script>
         // =========================================================================
-        // LÓGICA DE TEXTO Y TRADUCCIÓN (Mejorada para Símbolos y Autodetección)
+        // LÓGICA DE TEXTO, PUNTUACIÓN IA Y TRADUCCIÓN
         // =========================================================================
         const textarea = document.getElementById('input-texto');
-        let arraySugerencias = []; // Almacena sugerencias seguras para evitar inyección HTML
+        let arraySugerencias = []; 
+        let punctuationPipeline = null;
+
+        // Carga diferida del modelo de IA local para puntuación
+        async function cargarModeloPuntuacion() {
+            if (!punctuationPipeline && window.transformersPipeline) {
+                punctuationPipeline = await window.transformersPipeline('punctuation', 'Xenova/fullstop-punctuation-multilingual-large');
+            }
+        }
+
+        // Función puente: Coloca puntos, comas y mayúsculas, luego salta a la API de revisión
+        async function autocompletarSignosYAnalizar() {
+            let texto = textarea.value.trim();
+            if (!texto) return alert("Por favor, ingresa un texto.");
+
+            let btn = document.getElementById('btn-analizar');
+            btn.disabled = true;
+            btn.innerText = "✨ Colocando puntos y comas...";
+
+            try {
+                await cargarModeloPuntuacion();
+
+                if (punctuationPipeline) {
+                    let output = await punctuationPipeline(texto);
+                    if (output && output.text) {
+                        textarea.value = output.text;
+                        actualizarContadores();
+                    }
+                }
+
+                analizarTexto();
+
+            } catch (e) {
+                console.error("Error en puntuación automática:", e);
+                analizarTexto(); // Respaldo en caso de fallo en cliente
+            } finally {
+                btn.innerText = "🔍 Revisar Ortografía";
+                btn.disabled = false;
+            }
+        }
 
         function actualizarContadores() {
             let texto = textarea.value;
@@ -272,7 +317,6 @@
             btn.disabled = true;
 
             try {
-                // API gratuita que soporta Autodetect a idioma objetivo
                 let res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(texto)}&langpair=Autodetect|${targetLang}`);
                 let data = await res.json();
                 
@@ -293,14 +337,9 @@
 
         async function analizarTexto() {
             let texto = textarea.value.trim();
-            if (!texto) return alert("Por favor, ingresa un texto.");
-
-            let btn = document.getElementById('btn-analizar');
-            btn.innerText = "⏳ Analizando...";
-            btn.disabled = true;
+            if (!texto) return;
 
             try {
-                // Usa 'auto' para detección de idioma y 'picky' para gramática estricta
                 let response = await fetch('https://api.languagetool.org/v2/check', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -319,10 +358,7 @@
 
                 mostrarResultados(data.matches || [], texto);
             } catch (e) {
-                alert("Error de conexión con el servidor de análisis.");
-            } finally {
-                btn.innerText = "🔍 Revisar Ortografía";
-                btn.disabled = false;
+                console.error("Error de conexión con LanguageTool.");
             }
         }
 
@@ -330,7 +366,7 @@
             document.getElementById('badge-errores').innerText = matches.length;
             let contenedorLista = document.getElementById('lista-errores');
             contenedorLista.innerHTML = '';
-            arraySugerencias = []; // Resetear memoria de sugerencias seguras
+            arraySugerencias = []; 
 
             if (matches.length === 0) {
                 contenedorLista.innerHTML = '<div style="color: #34d399; padding: 15px; border: 1px solid #34d399; border-radius: 6px;">¡Excelente! No se detectaron errores.</div>';
@@ -344,7 +380,6 @@
                     let claseColor = esPuntuacion ? 'punct' : (esGramatica ? 'grammar' : 'spell');
                     let colorTexto = esPuntuacion ? '#3b82f6' : (esGramatica ? '#f59e0b' : '#ef4444');
 
-                    // Generación segura de botones usando índices del Array temporal
                     let sugerenciasHTML = err.replacements.slice(0, 4).map(rep => {
                         let idSugerencia = arraySugerencias.length;
                         arraySugerencias.push(rep.value);
@@ -369,7 +404,7 @@
             let nuevoTexto = arraySugerencias[idSugerencia];
             textarea.value = textarea.value.substring(0, offset) + nuevoTexto + textarea.value.substring(offset + length);
             actualizarContadores();
-            analizarTexto(); // Re-evaluar automáticamente para ajustar posiciones de los demás errores
+            analizarTexto(); 
         }
 
         // =========================================================================
@@ -411,7 +446,7 @@
         }
 
         // =========================================================================
-        // MOTOR DE IMAGEN (Borrador Mágico y Fondo) INTACTO DEL ORIGINAL
+        // MOTOR DE IMAGEN (Borrador Mágico y Fondo)
         // =========================================================================
         let canvas = document.getElementById('canvas-editor');
         let ctx = canvas.getContext('2d', { willReadFrequently: true });
