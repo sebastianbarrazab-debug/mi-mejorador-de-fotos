@@ -1,5 +1,174 @@
-// =========================================================================
-        // MOTOR DE TEXTO INTELIGENTE (Corrección avanzada de modismos, preguntas y puntuación)
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Motor de Análisis y Corrección de Texto</title>
+    <style>
+        /* Diseño oscuro y limpio (estilo IDE) */
+        :root {
+            --bg-color: #1e1e1e;
+            --panel-bg: #252526;
+            --text-color: #cccccc;
+            --border-color: #3e3e42;
+            --accent-blue: #0e639c;
+            --accent-hover: #1177bb;
+            --error-red: #f14c4c;
+            --warn-yellow: #cca700;
+            --success-green: #89d185;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #ffffff;
+            font-weight: 500;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 15px;
+            resize: vertical;
+            box-sizing: border-box;
+            outline: none;
+            transition: border 0.3s;
+        }
+
+        textarea:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background-color: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+
+        select {
+            background-color: #3c3c3c;
+            color: white;
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .stats-panel {
+            margin-top: 20px;
+            background-color: #2d2d2d;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid var(--accent-blue);
+            display: none;
+        }
+
+        .error-card {
+            background-color: #2d2d30;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+
+        .suggestion-btn {
+            background-color: #3c3c3c;
+            color: #d4d4d4;
+            border: 1px solid #555;
+            padding: 5px 10px;
+            margin: 4px 4px 0 0;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .suggestion-btn:hover {
+            background-color: #505050;
+        }
+
+        .result-section {
+            display: none;
+            margin-top: 25px;
+        }
+        
+        .grammar-err { color: var(--warn-yellow); }
+        .punct-err { color: var(--accent-blue); }
+        .spell-err { color: var(--error-red); }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>🛠️ Motor de Corrección y Puntuación</h2>
+        <textarea id="input-texto" placeholder="Escribe o pega tu texto aquí..."></textarea>
+        
+        <div class="controls">
+            <button onclick="analizarTexto()">🔍 Analizar Errores</button>
+            <select id="sel-estilo-ia">
+                <option value="auto">Arreglo Automático (Puntuación y Preguntas)</option>
+                <option value="formal">Estilo Formal (Remueve coloquialismos)</option>
+            </select>
+            <button onclick="mejorarTextoIA()" style="background-color: #059669;">✨ Aplicar Mejora</button>
+        </div>
+
+        <div id="stats-texto" class="stats-panel">
+            <strong>Errores detectados: <span id="lbl-errores" style="color: var(--error-red);">0</span></strong>
+        </div>
+
+        <div id="contenedor-errores">
+            <div id="lista-errores"></div>
+        </div>
+
+        <div id="seccion-resultado-texto" class="result-section">
+            <h3 id="lbl-titulo-resultado" style="color: #ffffff; font-size: 16px;">Resultado:</h3>
+            <textarea id="output-texto" readonly></textarea>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================================
+        // MOTOR DE ANÁLISIS SINTÁCTICO Y PUNTUACIÓN (Versión Corregida)
         // =========================================================================
 
         function normalizarModismosTexto(texto) {
@@ -11,62 +180,62 @@
                 { regex: /\btb\b/gi, reemplazo: 'también' },
                 { regex: /\bx\b/gi, reemplazo: 'por' },
                 { regex: /\bpa\b/gi, reemplazo: 'para' },
-                { regex: /\bfavor\b/gi, reemplazo: 'por favor' }
+                { regex: /\bporfa\b/gi, reemplazo: 'por favor' }
             ];
-
-            diccionario.forEach(item => {
-                limpio = limpio.replace(item.regex, item.reemplazo);
-            });
+            diccionario.forEach(item => { limpio = limpio.replace(item.regex, item.reemplazo); });
             return limpio;
         }
 
-        // Corrector estricto de puntuación, espacios y delimitación de preguntas en español
         function corregirPuntuacionYEstructura(texto) {
             let limpio = texto.trim();
 
-            // 1. Corregir espacios antes de signos de puntuación
+            // 1. Corregir espaciado alrededor de signos (sin romper puntos suspensivos ni cierres)
             limpio = limpio.replace(/\s+([,.;:?!])/g, '$1');
+            limpio = limpio.replace(/([,;:?!])(?=[^\s"'\)\]])/g, '$1 '); 
+            limpio = limpio.replace(/\.(?=[^\s"'\)\]\.])/g, '. '); // Punto normal, ignorar "..."
 
-            // 2. Asegurar espacio después de signos de puntuación si falta
-            limpio = limpio.replace(/([,.;:?!])(?=[^\s])/g, '$1 ');
-
-            // 3. Detección y corrección inteligente de preguntas (Añadir ¿ y ?)
-            // Palabras interrogativas comunes en español
-            const interrogativos = /\b(que|como|cuando|donde|quien|por que|cuanto|cual|cuales|porqué)\b/i;
+            // 2. Extraer oraciones de forma segura usando expresiones regulares
+            // Busca bloques de texto que terminan en punto, exclamación o interrogación
+            let regexOraciones = /([^.?!]+[.?!]*)/g;
+            let fragmentos = limpio.match(regexOraciones);
             
-            let frases = limpio.split(/([.?!]\s+|\n+)/);
-            let resultadoFrases = [];
+            if (!fragmentos) return limpio; // Fallback de seguridad
 
-            for (let i = 0; i < frases.length; i++) {
-                let frase = frases[i].trim();
-                if (!frase) continue;
+            // 3. Palabras que al INICIO de una oración indican pregunta
+            const iniciosPregunta = /^\s*(qué|cómo|cuándo|dónde|quién|por qué|cuánto|cuál|cuáles|sabes|puedes|quieres|tienes|es|son|haces|te parece)\b/i;
 
-                // Si la frase empieza con palabra interrogativa o tiene tono de pregunta pero le falta el ¿ o el ?
-                let esInterrogativa = interrogativos.test(frase) || /^(es|son|tiene|tienes|puedes|sabes|quieres|haces|donde|cuando)\b/i.test(frase);
+            let resultado = fragmentos.map(frase => {
+                let f = frase.trim();
+                if (!f) return '';
+
+                let tieneApertura = f.startsWith('¿');
+                let tieneCierre = f.endsWith('?');
                 
-                if (esInterrogativa) {
-                    // Si no tiene signo de interrogación al inicio, se lo agregamos
-                    if (!frase.startsWith('¿') && !frase.startsWith('¡')) {
-                        // Buscar si hay una conjunción inicial o pronombre para ubicar bien el ¿
-                        frase = '¿' + frase;
-                    }
-                    // Asegurar cierre con ?
-                    if (!frase.endsWith('?') && !frase.endsWith('!')) {
-                        frase = frase.replace(/[.,;:]*$/, '?');
-                    }
+                // Es pregunta si empieza con pronombre interrogativo o si ya tiene algún signo de interrogación
+                let esPregunta = iniciosPregunta.test(f) || tieneApertura || tieneCierre;
+
+                if (esPregunta) {
+                    f = f.replace(/\.+$/, ''); // Quitar puntos accidentales al final
+                    if (!f.startsWith('¿') && !f.startsWith('¡')) f = '¿' + f;
+                    if (!f.endsWith('?') && !f.endsWith('!')) f = f + '?';
                 } else {
-                    // Si es frase normal, asegurar punto final si no tiene signo
-                    if (!/[.?!]$/.test(frase)) {
-                        frase += '.';
-                    }
+                    // Si es oración normal, asegurar punto final
+                    if (!/[.?!]$/.test(f)) f = f + '.';
                 }
 
-                // Mayúscula inicial en cada oración
-                frase = frase.charAt(0).toUpperCase() + frase.slice(1);
-                resultadoFrases.push(frase);
-            }
+                // Capitalizar primera letra ignorando el signo ¿ o ¡
+                if (f.startsWith('¿') || f.startsWith('¡')) {
+                    if (f.length > 1) {
+                        f = f.charAt(0) + f.charAt(1).toUpperCase() + f.slice(2);
+                    }
+                } else {
+                    f = f.charAt(0).toUpperCase() + f.slice(1);
+                }
+                
+                return f;
+            });
 
-            return resultadoFrases.join(' ');
+            return resultado.join(' ');
         }
         
         async function analizarTexto() {
@@ -75,7 +244,7 @@
 
             let texto = normalizarModismosTexto(textoCrudo);
 
-            document.getElementById('stats-texto').style.display = 'flex';
+            document.getElementById('stats-texto').style.display = 'block';
             document.getElementById('lbl-errores').innerText = "...";
             document.getElementById('contenedor-errores').style.display = 'none';
             document.getElementById('seccion-resultado-texto').style.display = 'none';
@@ -84,10 +253,7 @@
                 let response = await fetch('https://api.languagetool.org/v2/check', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({
-                        'text': texto,
-                        'language': 'es' 
-                    })
+                    body: new URLSearchParams({ 'text': texto, 'language': 'es' })
                 });
 
                 let data = await response.json();
@@ -98,47 +264,47 @@
                 contenedorLista.innerHTML = '';
 
                 if (matches.length === 0) {
-                    contenedorLista.innerHTML = '<div style="color:#34d399; padding:10px;">¡Tu texto está perfecto! 🎉 No se detectaron errores de gramática ni puntuación.</div>';
+                    contenedorLista.innerHTML = '<div style="color: var(--success-green); padding: 10px;">¡Tu texto está perfecto! 🎉 No se detectaron errores.</div>';
                 } else {
                     matches.forEach((err, idx) => {
                         let textoAfectado = texto.substring(err.offset, err.offset + err.length);
                         let esGramatica = err.rule && err.rule.issueType === 'grammar';
                         let esPuntuacion = err.rule && err.rule.issueType === 'typographical';
                         
-                        let claseColor = esPuntuacion ? 'punctuation' : (esGramatica ? 'grammar' : '');
-                        let tipoError = esPuntuacion ? 'Puntuación/Espaciado' : (esGramatica ? 'Gramática' : 'Ortografía/Modismo');
-                        let colorTexto = esPuntuacion ? '#3b82f6' : (esGramatica ? '#f59e0b' : '#ef4444');
+                        let tipoError = esPuntuacion ? 'Puntuación' : (esGramatica ? 'Gramática' : 'Ortografía');
+                        let claseColor = esPuntuacion ? 'punct-err' : (esGramatica ? 'grammar-err' : 'spell-err');
 
-                        let sugerenciasHTML = err.replacements.slice(0, 4).map(rep => 
+                        let sugerenciasHTML = err.replacements.slice(0, 5).map(rep => 
                             `<button class="suggestion-btn" onclick="aplicarCorreccion(${err.offset}, ${err.length}, '${rep.value.replace(/'/g, "\\'")}')">${rep.value}</button>`
                         ).join('');
 
                         let card = document.createElement('div');
-                        card.className = `error-card ${claseColor}`;
+                        card.className = `error-card`;
                         card.innerHTML = `
-                            <div style="font-size:13px; color:#94a3b8; margin-bottom:4px;">
-                                Error #${idx + 1}: <strong style="color:${colorTexto}">${tipoError}</strong>
+                            <div style="font-size: 13px; color: #858585; margin-bottom: 5px;">
+                                Error #${idx + 1}: <strong class="${claseColor}">${tipoError}</strong>
                             </div>
-                            <div style="margin-bottom:6px;">
-                                Encontrado en: <span class="error-word" style="color:${colorTexto}; text-decoration:${textoAfectado ? 'line-through' : 'underline'};">${textoAfectado || '(Espacio/Signo faltante)'}</span>
+                            <div style="margin-bottom: 8px; font-size: 15px;">
+                                Encontrado en: <span style="text-decoration: underline;" class="${claseColor}">${textoAfectado || '(Espacio/Signo faltante)'}</span>
                             </div>
-                            <div style="font-size:13px; color:#cbd5e1; margin-bottom:8px;">${err.message}</div>
-                            ${sugerenciasHTML ? `<div><span style="font-size:12px; color:#94a3b8;">Sugerencias:</span><br>${sugerenciasHTML}</div>` : ''}
+                            <div style="font-size: 14px; margin-bottom: 10px;">${err.message}</div>
+                            ${sugerenciasHTML ? `<div>${sugerenciasHTML}</div>` : ''}
                         `;
                         contenedorLista.appendChild(card);
                     });
                 }
                 document.getElementById('contenedor-errores').style.display = 'block';
-
             } catch (e) {
-                alert("Error al conectar con el servidor de análisis.");
+                alert("Error al conectar con el servidor de análisis (LanguageTool).");
             }
         }
 
         function aplicarCorreccion(offset, length, nuevoTexto) {
             let input = document.getElementById('input-texto');
             let textoOriginal = input.value;
-            input.value = textoOriginal.substring(0, offset) + nuevoTexto + textoOriginal.substring(offset + length);
+            // Normalizar el texto original igual que como se analizó
+            let textoNormalizado = normalizarModismosTexto(textoOriginal);
+            input.value = textoNormalizado.substring(0, offset) + nuevoTexto + textoNormalizado.substring(offset + length);
             analizarTexto();
         }
 
@@ -150,11 +316,12 @@
             let texto = normalizarModismosTexto(textoCrudo);
             let output = document.getElementById('output-texto');
             document.getElementById('seccion-resultado-texto').style.display = 'block';
-            output.value = "Procesando correcciones con contexto y puntuación...";
+            output.value = "Procesando correcciones automáticas...";
 
             if (estilo === 'auto') {
-                document.getElementById('lbl-titulo-resultado').innerText = "✨ Arreglado Automáticamente (Modismos, preguntas y puntuación):";
+                document.getElementById('lbl-titulo-resultado').innerText = "✨ Texto Reparado (Puntuación y Preguntas):";
                 try {
+                    // 1. Consultamos LanguageTool para correcciones ortográficas básicas
                     let response = await fetch('https://api.languagetool.org/v2/check', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -163,6 +330,7 @@
                     let data = await response.json();
                     let matches = data.matches || [];
                     
+                    // Aplicar sugerencias de atrás hacia adelante para no romper los índices
                     let textoCorregido = texto;
                     for (let i = matches.length - 1; i >= 0; i--) {
                         let match = matches[i];
@@ -172,27 +340,23 @@
                         }
                     }
 
-                    // Aplicar el corrector estructural de preguntas y puntuación final
-                    textoCorregido = corregirPuntuacionYEstructura(textoCorregido);
-                    output.value = textoCorregido;
+                    // 2. Pasamos el filtro fuerte de puntuación y estructura
+                    output.value = corregirPuntuacionYEstructura(textoCorregido);
                 } catch (e) {
+                    // Fallback si la API falla, aplicamos solo el motor local
                     output.value = corregirPuntuacionYEstructura(texto);
                 }
-            } 
-            else if (estilo === 'fluido') {
-                document.getElementById('lbl-titulo-resultado').innerText = "Mejora de Fluidez y Puntuación:";
-                let procesado = corregirPuntuacionYEstructura(texto);
-                output.value = procesado;
             } 
             else if (estilo === 'formal') {
                 document.getElementById('lbl-titulo-resultado').innerText = "Texto adaptado a Estilo Formal:";
                 let procesado = texto;
                 procesado = procesado.replace(/\b(hola|buenas|q tal|que tal)\b/gi, 'Estimado/a,')
-                                     .replace(/\b(porfa|porfis)\b/gi, 'por favor')
                                      .replace(/\b(ok|vale|dale)\b/gi, 'de acuerdo')
                                      .replace(/\b(yo creo que|me parece que)\b/gi, 'considero que');
                 
-                procesado = corregirPuntuacionYEstructura(procesado);
-                output.value = procesado;
+                output.value = corregirPuntuacionYEstructura(procesado);
             }
         }
+    </script>
+</body>
+</html>
