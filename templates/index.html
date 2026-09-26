@@ -4,14 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>iLoveFotos - Herramientas de Imagen y PDF Online Gratis</title>
-    <meta name="description" content="Elimina fondos de fotos automáticamente, comprime, recorta, une PDFs y optimiza tus documentos online y gratis.">
+    <meta name="description" content="Borra fondos de fotos, comprime, recorta, une PDFs y optimiza tus documentos online y gratis.">
     
     <!-- LIBRERÍAS EXTERNAS (Client-Side) -->
     <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-    <!-- Biblioteca de IA para Eliminar Fondo en el Navegador -->
-    <script src="https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/dist/bundle.js"></script>
     
     <!-- Cropper.js para Recortes -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
@@ -57,7 +55,7 @@
     <nav class="navbar">
         <a href="#" class="logo">iLove<span>Fotos</span></a>
         <div class="nav-links">
-            <button id="nav-quitar-fondo" class="active" onclick="switchTab('quitar-fondo')">✨ Quitar Fondo</button>
+            <button id="nav-borrador" class="active" onclick="switchTab('borrador')">🧹 Borrador de Fondo</button>
             <button id="nav-pdf" onclick="switchTab('pdf')">📑 PDF</button>
             <button id="nav-comprimir" onclick="switchTab('comprimir')">🗜️ Comprimir</button>
             <button id="nav-convertir" onclick="switchTab('convertir')">🔄 Convertir</button>
@@ -69,14 +67,25 @@
 
     <div class="container">
         
-        <!-- NUEVA HERRAMIENTA: QUITAR FONDO (IA CLIENTE) -->
-        <div id="tab-quitar-fondo" class="tab-content active">
+        <!-- NUEVA HERRAMIENTA: BORRADOR MANUAL -->
+        <div id="tab-borrador" class="tab-content active">
             <div class="card">
-                <h2>Eliminar Fondo</h2>
-                <p>Borra el fondo de cualquier fotografía de forma automática mediante Inteligencia Artificial en tu navegador.</p>
-                <label for="input-quitar-fondo" class="file-label" id="label-quitar-fondo">📁 Seleccionar foto</label>
-                <input type="file" id="input-quitar-fondo" accept="image/*" onchange="updateLabel('quitar-fondo')">
-                <button class="btn-action" id="btn-quitar-fondo" onclick="procesarEliminarFondo()">Eliminar Fondo Ahora</button>
+                <h2>Borrador Manual de Fondo</h2>
+                <p>Borra las partes que no quieras de tu foto pasando el ratón o el dedo.</p>
+                <label for="input-borrador" class="file-label" id="label-borrador">📁 Seleccionar foto</label>
+                <input type="file" id="input-borrador" accept="image/*" onchange="prepararBorrador(event)">
+                
+                <div id="herramientas-borrador" style="display:none; margin-top: 20px;">
+                    <p style="margin: 5px 0; color: #94a3b8; font-size: 13px; text-align: left;">Tamaño del Pincel:</p>
+                    <input type="range" id="brush-size" min="5" max="100" value="30" style="width: 100%; margin-bottom: 15px;">
+                    
+                    <!-- Fondo cuadriculado estilo Photoshop para ver la transparencia -->
+                    <div style="position: relative; background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGlpSUGIg3m5eVlYGIYNYBhmIQBvYEPAwAwLwH9rS1X+QAAAABJRU5ErkJggg==') repeat; border-radius: 8px; border: 1px solid #374151; overflow: hidden; display: flex; justify-content: center; align-items: center; background-color: #fff;">
+                        <canvas id="canvas-borrador" style="cursor: crosshair; max-width: 100%; touch-action: none;"></canvas>
+                    </div>
+                    
+                    <button class="btn-action" style="margin-top: 20px;" onclick="guardarFondoBorrado()">📥 Descargar PNG sin fondo</button>
+                </div>
             </div>
         </div>
 
@@ -205,32 +214,99 @@
             }
         }
 
-        // --- ELIMINAR FONDO (IA LOCAL) ---
-        async function procesarEliminarFondo() {
-            let inputElement = document.getElementById('input-quitar-fondo');
-            if (!inputElement || !inputElement.files || !inputElement.files[0]) return alert("Selecciona una foto.");
+        // --- LÓGICA DEL BORRADOR MANUAL ---
+        let canvasBorrador = document.getElementById('canvas-borrador');
+        let ctxBorrador = canvasBorrador.getContext('2d', { willReadFrequently: true });
+        let isDrawing = false;
 
-            let boton = document.getElementById('btn-quitar-fondo');
-            boton.innerText = "⏳ Analizando IA (puede tardar unos segundos)...";
-            boton.disabled = true;
-            extensionDescargaLocal = 'png'; // Fondo transparente requiere PNG
+        function prepararBorrador(event) {
+            updateLabel('borrador');
+            let file = event.target.files[0];
+            if (!file) return;
 
-            try {
-                // imgly background removal se ejecuta directo en el navegador
-                const blobResultado = await imglyRemoveBackground(inputElement.files[0]);
-                blobDescargaLocal = blobResultado;
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                let img = new Image();
+                img.onload = function() {
+                    // Ajustamos el tamaño máximo para que encaje en móviles y PC
+                    let maxWidth = 500;
+                    let scale = 1;
+                    if (img.width > maxWidth) {
+                        scale = maxWidth / img.width;
+                    }
+                    
+                    canvasBorrador.width = img.width * scale;
+                    canvasBorrador.height = img.height * scale;
+                    
+                    // Reseteamos el contexto y dibujamos la foto
+                    ctxBorrador.globalCompositeOperation = "source-over";
+                    ctxBorrador.drawImage(img, 0, 0, canvasBorrador.width, canvasBorrador.height);
+                    document.getElementById('herramientas-borrador').style.display = 'block';
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        // Obtener posición exacta del ratón o dedo en el canvas
+        function getPointerPos(e) {
+            let rect = canvasBorrador.getBoundingClientRect();
+            let clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            let clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            return {
+                x: (clientX - rect.left) * (canvasBorrador.width / rect.width),
+                y: (clientY - rect.top) * (canvasBorrador.height / rect.height)
+            };
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            draw(e);
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            ctxBorrador.beginPath();
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault(); // Evita que la pantalla haga scroll al borrar en móviles
+
+            let pos = getPointerPos(e);
+            let brushSize = document.getElementById('brush-size').value;
+
+            // Esta propiedad hace que el pincel BORRE la imagen dejando transparencia
+            ctxBorrador.globalCompositeOperation = "destination-out";
+            ctxBorrador.lineWidth = brushSize;
+            ctxBorrador.lineCap = "round";
+            
+            ctxBorrador.lineTo(pos.x, pos.y);
+            ctxBorrador.stroke();
+            ctxBorrador.beginPath();
+            ctxBorrador.moveTo(pos.x, pos.y);
+        }
+
+        // Escuchadores de eventos para Ratón (PC)
+        canvasBorrador.addEventListener('mousedown', startDrawing);
+        canvasBorrador.addEventListener('mousemove', draw);
+        canvasBorrador.addEventListener('mouseup', stopDrawing);
+        canvasBorrador.addEventListener('mouseleave', stopDrawing);
+
+        // Escuchadores de eventos para Táctil (Móviles)
+        canvasBorrador.addEventListener('touchstart', startDrawing, {passive: false});
+        canvasBorrador.addEventListener('touchmove', draw, {passive: false});
+        canvasBorrador.addEventListener('touchend', stopDrawing);
+
+        function guardarFondoBorrado() {
+            canvasBorrador.toBlob((blob) => {
+                blobDescargaLocal = blob;
                 urlDescargaServidor = "";
-
-                document.getElementById('texto-estado').innerText = "¡Fondo eliminado con éxito!";
+                extensionDescargaLocal = "png"; // PNG para mantener la transparencia
+                document.getElementById('texto-estado').innerText = "¡Fondo borrado con éxito!";
                 document.getElementById('seccion-anuncio').style.display = 'block';
                 arrancarTemporizadorAnuncio();
-            } catch (error) {
-                console.error(error);
-                alert("Ocurrió un error al eliminar el fondo. Intenta con otra imagen.");
-            } finally {
-                boton.innerText = "Eliminar Fondo Ahora";
-                boton.disabled = false;
-            }
+            }, 'image/png');
         }
 
         // --- FUNCIONES DE PDF ---
@@ -470,7 +546,7 @@
                             let url = URL.createObjectURL(blobDescargaLocal);
                             let a = document.createElement('a');
                             a.href = url;
-                            a.download = `ilovefotos_sin_fondo.${extensionDescargaLocal}`;
+                            a.download = `ilovefotos_editado.${extensionDescargaLocal}`;
                             a.click();
                         } else if (urlDescargaServidor) {
                             window.location.href = urlDescargaServidor;
