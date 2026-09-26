@@ -57,7 +57,7 @@
         #canvas-editor { display: block; max-width: 100%; height: auto; cursor: crosshair; touch-action: none; position: relative; z-index: 1; }
         #canvas-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
 
-        .ads-section { display: none; width: 100%; max-width: 680px; padding: 20px; background: #1e293b; border-radius: 12px; border: 1px solid #374151; box-sizing: border-box; }
+        .ads-section { display: none; width: 100%; max-width: 680px; padding: 20px; background: #1e293b; border-radius: 12px; border: 1px solid #374151; box-sizing: border-box; margin-top: 20px; }
         .status-text { color: #34d399; font-weight: 600; margin-bottom: 10px; }
         .img-container { width: 100%; max-height: 400px; margin-bottom: 20px; display: none; background: #000; border-radius: 8px; overflow: hidden; }
         .img-container img { max-width: 100%; display: block; }
@@ -141,17 +141,17 @@
         <div id="tab-texto" class="tab-content">
             <div class="card">
                 <h2>Corrector de Ortografía, Puntuación y Estilo</h2>
-                <p>Escribe tu texto. El sistema detectará faltas de ortografía, gramática, y signos de puntuación ausentes (comas, puntos).</p>
+                <p>Escribe tu texto. El sistema detectará faltas de ortografía, gramática, modismos informales y signos de puntuación ausentes.</p>
 
                 <textarea id="input-texto" placeholder="Escribe o pega tu texto aquí para analizarlo..." rows="6" style="width:100%; padding:14px; border-radius:10px; background:#1e293b; color:#f8fafc; border:1px solid #374151; font-size:15px; box-sizing:border-box; margin-bottom:15px; resize:vertical; font-family:inherit; outline:none;"></textarea>
 
                 <div class="editor-panel">
                     <button class="btn-action" style="margin-bottom: 5px;" onclick="analizarTexto()">
-                        🔍 Detectar Errores y Puntuación
+                        🔍 Detectar Errores, Puntuación y Modismos
                     </button>
 
                     <div id="stats-texto" style="display:none; flex-wrap:wrap; gap:10px; justify-content:space-between; align-items:center; background:#0f172a; padding:12px 16px; border-radius:8px; border:1px solid #334155; font-size:14px;">
-                        <span>🌐 Idioma: <strong style="color:#60a5fa;">Español (Estricto)</strong></span>
+                        <span>🌐 Idioma: <strong style="color:#60a5fa;">Español Inteligente (Estricto)</strong></span>
                         <span>⚠️ Errores: <strong id="lbl-errores" style="color:#ef4444;">0</strong></span>
                     </div>
 
@@ -162,7 +162,7 @@
                             <label style="font-weight:600;">✨ Aplicar mejoras y correcciones:</label>
                             <div style="display:flex; gap:8px; width:100%; margin-top:5px;">
                                 <select id="sel-estilo-ia" class="selector-formato" style="margin-bottom:0; flex:1;">
-                                    <option value="auto" selected>✨ Arreglar Automáticamente (Ortografía y Puntuación)</option>
+                                    <option value="auto" selected>✨ Arreglar Automáticamente (Modismos, Ortografía y Puntuación)</option>
                                     <option value="fluido">Mejorar Fluidez y Espaciados</option>
                                     <option value="formal">Convertir a Estilo Formal</option>
                                 </select>
@@ -304,12 +304,35 @@
         }
 
         // =========================================================================
-        // TEXTO: ANALISIS ESTRICTO, PUNTUACIÓN Y ARREGLO AUTOMÁTICO
+        // MOTOR DE TEXTO INTELIGENTE (Corrección de modismos, chat y puntuación)
         // =========================================================================
+
+        // Diccionario avanzado para corregir modismos de chat y expresiones incompletas comunes
+        function normalizarModismosTexto(texto) {
+            let limpio = texto;
+            // Reemplazos contextuales con límites de palabras (\b) para evitar romper palabras completas
+            const diccionario = [
+                { regex: /\bnc\b/gi, reemplazo: 'no sé' },
+                { regex: /\bq\b/gi, reemplazo: 'que' },
+                { regex: /\bxq\b/gi, reemplazo: 'porque' },
+                { regex: /\btb\b/gi, reemplazo: 'también' },
+                { regex: /\bx\b/gi, reemplazo: 'por' },
+                { regex: /\bpa\b/gi, reemplazo: 'para' },
+                { regex: /\bfavor\b/gi, reemplazo: 'por favor' }
+            ];
+
+            diccionario.forEach(item => {
+                limpio = limpio.replace(item.regex, item.reemplazo);
+            });
+            return limpio;
+        }
         
         async function analizarTexto() {
-            let texto = document.getElementById('input-texto').value.trim();
-            if (!texto) return alert("Por favor, ingresa un texto para analizar.");
+            let textoCrudo = document.getElementById('input-texto').value.trim();
+            if (!textoCrudo) return alert("Por favor, ingresa un texto para analizar.");
+
+            // Normalizamos modismos de chat automáticamente antes del análisis
+            let texto = normalizarModismosTexto(textoCrudo);
 
             document.getElementById('stats-texto').style.display = 'flex';
             document.getElementById('lbl-errores').innerText = "...";
@@ -317,7 +340,6 @@
             document.getElementById('seccion-resultado-texto').style.display = 'none';
 
             try {
-                // Forzamos idioma 'es' (Español) para que aplique reglas estrictas de puntuación
                 let response = await fetch('https://api.languagetool.org/v2/check', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -335,15 +357,15 @@
                 contenedorLista.innerHTML = '';
 
                 if (matches.length === 0) {
-                    contenedorLista.innerHTML = '<div style="color:#34d399; padding:10px;">¡Tu texto está perfecto! 🎉 No se detectaron errores.</div>';
+                    contenedorLista.innerHTML = '<div style="color:#34d399; padding:10px;">¡Tu texto está perfecto! 🎉 No se detectaron errores de gramática ni puntuación.</div>';
                 } else {
                     matches.forEach((err, idx) => {
                         let textoAfectado = texto.substring(err.offset, err.offset + err.length);
                         let esGramatica = err.rule && err.rule.issueType === 'grammar';
-                        let esPuntuacion = err.rule && err.rule.issueType === 'typographical'; // Faltan comas/puntos
+                        let esPuntuacion = err.rule && err.rule.issueType === 'typographical';
                         
                         let claseColor = esPuntuacion ? 'punctuation' : (esGramatica ? 'grammar' : '');
-                        let tipoError = esPuntuacion ? 'Puntuación/Espaciado' : (esGramatica ? 'Gramática' : 'Ortografía');
+                        let tipoError = esPuntuacion ? 'Puntuación/Espaciado' : (esGramatica ? 'Gramática' : 'Ortografía/Modismo');
                         let colorTexto = esPuntuacion ? '#3b82f6' : (esGramatica ? '#f59e0b' : '#ef4444');
 
                         let sugerenciasHTML = err.replacements.slice(0, 4).map(rep => 
@@ -380,28 +402,29 @@
         }
 
         async function mejorarTextoIA() {
-            let texto = document.getElementById('input-texto').value.trim();
+            let textoCrudo = document.getElementById('input-texto').value.trim();
             let estilo = document.getElementById('sel-estilo-ia').value;
-            if (!texto) return alert("Por favor, ingresa un texto.");
+            if (!textoCrudo) return alert("Por favor, ingresa un texto.");
+
+            // Aplicar limpieza de modismos de chat (ej: nc -> no sé, q -> que)
+            let texto = normalizarModismosTexto(textoCrudo);
 
             let output = document.getElementById('output-texto');
             document.getElementById('seccion-resultado-texto').style.display = 'block';
-            output.value = "Procesando correcciones...";
+            output.value = "Procesando correcciones con contexto...";
 
             if (estilo === 'auto') {
-                document.getElementById('lbl-titulo-resultado').innerText = "✨ Arreglado Automáticamente (Se aplicaron todas las correcciones):";
+                document.getElementById('lbl-titulo-resultado').innerText = "✨ Arreglado Automáticamente (Modismos, ortografía y puntuación):";
                 try {
-                    // LLAMADA REAL A LA API PARA CORREGIR TODO DE GOLPE
                     let response = await fetch('https://api.languagetool.org/v2/check', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                         body: new URLSearchParams({ 'text': texto, 'language': 'es' })
                     });
                     let data = await response.json();
-                    let matches = data.matches;
+                    let matches = data.matches || [];
                     
                     let textoCorregido = texto;
-                    // Aplicar reemplazos de atrás hacia adelante para no perder la posición (offset)
                     for (let i = matches.length - 1; i >= 0; i--) {
                         let match = matches[i];
                         if (match.replacements && match.replacements.length > 0) {
@@ -410,7 +433,6 @@
                         }
                     }
 
-                    // Forzar mayúscula inicial y punto final por si acaso
                     textoCorregido = textoCorregido.charAt(0).toUpperCase() + textoCorregido.slice(1);
                     if (!/[.!?]$/.test(textoCorregido.trim())) textoCorregido += '.';
                     
@@ -421,12 +443,11 @@
             } 
             else if (estilo === 'fluido') {
                 document.getElementById('lbl-titulo-resultado').innerText = "Mejora de Fluidez y Puntuación:";
-                let procesado = texto.replace(/\s+/g, ' ') // Quitar espacios dobles
-                                     .replace(/\s+([?,.!;:])/g, '$1') // Quitar espacio antes de signos
-                                     .replace(/([?,.!;:])(?=[^\s])/g, '$1 ') // Poner espacio después de signos
+                let procesado = texto.replace(/\s+/g, ' ') 
+                                     .replace(/\s+([?,.!;:])/g, '$1') 
+                                     .replace(/([?,.!;:])(?=[^\s])/g, '$1 ') 
                                      .trim();
                 
-                // Mayúsculas después de punto
                 procesado = procesado.replace(/(^\s*|[.!?]\s+)([a-záéíóúñ])/g, (m, p1, p2) => p1 + p2.toUpperCase());
                 
                 if (!/[.!?]$/.test(procesado)) procesado += '.';
@@ -478,9 +499,9 @@
             document.getElementById('seccion-resultado-texto').style.display = 'none';
         }
 
-        // (El código de Borrador, Recorte, PDF y Compresión se mantiene igual a la versión anterior)
-        
-        // ... (resto de funciones de borrador/canvas)
+        // =========================================================================
+        // MÓDULO DE EDICIÓN DE IMAGEN Y BORRADOR (Canvas Completo)
+        // =========================================================================
         let canvas = document.getElementById('canvas-editor');
         let ctx = canvas.getContext('2d', { willReadFrequently: true });
         let overlay = document.getElementById('canvas-overlay');
@@ -489,9 +510,25 @@
         let ctxOriginal = canvasOriginal.getContext('2d', { willReadFrequently: true });
         let modoActual = 'borrar', isDrawing = false, strokeTargetColor = null, historialEstados = [];
 
-        function setModo(modo) { modoActual = modo; document.getElementById('btn-modo-borrar').classList.toggle('active', modo === 'borrar'); document.getElementById('btn-modo-restaurar').classList.toggle('active', modo === 'restaurar'); }
-        function guardarEstadoHistorial() { if (canvas.width === 0) return; historialEstados.push(ctx.getImageData(0, 0, canvas.width, canvas.height)); if (historialEstados.length > 25) historialEstados.shift(); document.getElementById('btn-undo').disabled = historialEstados.length <= 1; }
-        function deshacerAccion() { if (historialEstados.length <= 1) return; historialEstados.pop(); ctx.putImageData(historialEstados[historialEstados.length - 1], 0, 0); document.getElementById('btn-undo').disabled = historialEstados.length <= 1; }
+        function setModo(modo) { 
+            modoActual = modo; 
+            document.getElementById('btn-modo-borrar').classList.toggle('active', modo === 'borrar'); 
+            document.getElementById('btn-modo-restaurar').classList.toggle('active', modo === 'restaurar'); 
+        }
+
+        function guardarEstadoHistorial() { 
+            if (canvas.width === 0) return; 
+            historialEstados.push(ctx.getImageData(0, 0, canvas.width, canvas.height)); 
+            if (historialEstados.length > 25) historialEstados.shift(); 
+            document.getElementById('btn-undo').disabled = historialEstados.length <= 1; 
+        }
+
+        function deshacerAccion() { 
+            if (historialEstados.length <= 1) return; 
+            historialEstados.pop(); 
+            ctx.putImageData(historialEstados[historialEstados.length - 1], 0, 0); 
+            document.getElementById('btn-undo').disabled = historialEstados.length <= 1; 
+        }
         
         function prepararImagen(event) {
             let file = event.target.files[0];
@@ -506,78 +543,190 @@
                     canvas.height = overlay.height = canvasOriginal.height = Math.floor(img.height * scale);
                     ctxOriginal.drawImage(img, 0, 0, canvas.width, canvas.height);
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    historialEstados = []; guardarEstadoHistorial(); document.getElementById('herramientas-borrador').style.display = 'block';
+                    historialEstados = []; 
+                    guardarEstadoHistorial(); 
+                    document.getElementById('herramientas-borrador').style.display = 'block';
                 };
                 img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
 
-        function eliminarFondoAuto() { /* Lógica simplificada de color promedio */
-            let w = canvas.width, h = canvas.height, imgData = ctx.getImageData(0,0,w,h), d = imgData.data;
+        function eliminarFondoAuto() {
+            let w = canvas.width, h = canvas.height, imgData = ctx.getImageData(0, 0, w, h), d = imgData.data;
             let bg = {r: d[0], g: d[1], b: d[2]};
             for (let i = 0; i < d.length; i += 4) {
-                if (Math.sqrt((d[i]-bg.r)**2 + (d[i+1]-bg.g)**2 + (d[i+2]-bg.b)**2) < 55) d[i+3] = 0;
+                if (Math.sqrt((d[i]-bg.r)**2 + (d[i+1]-bg.g)**2 + (d[i+2]-bg.b)**2) < 55) {
+                    d[i+3] = 0;
+                }
             }
-            ctx.putImageData(imgData, 0, 0); guardarEstadoHistorial();
+            ctx.putImageData(imgData, 0, 0); 
+            guardarEstadoHistorial();
         }
 
         function getPointerPos(e) {
-            let rect = canvas.getBoundingClientRect(), cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY;
-            return { x: Math.floor((cX - rect.left) * (canvas.width / rect.width)), y: Math.floor((cY - rect.top) * (canvas.height / rect.height)) };
+            let rect = canvas.getBoundingClientRect();
+            let cX = e.touches ? e.touches[0].clientX : e.clientX;
+            let cY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { 
+                x: Math.floor((cX - rect.left) * (canvas.width / rect.width)), 
+                y: Math.floor((cY - rect.top) * (canvas.height / rect.height)) 
+            };
         }
         
         function draw(e) {
             let pos = getPointerPos(e);
             if (isDrawing) {
                 e.preventDefault();
-                let r = parseInt(document.getElementById('brush-size').value), tol = parseInt(document.getElementById('tolerance-size').value);
+                let r = parseInt(document.getElementById('brush-size').value);
+                let tol = parseInt(document.getElementById('tolerance-size').value);
                 let magico = document.getElementById('toggle-pincel-magico').checked;
-                let cur = ctx.getImageData(0,0,canvas.width,canvas.height), orig = ctxOriginal.getImageData(0,0,canvas.width,canvas.height);
-                for(let y=Math.max(0,pos.y-r); y<=Math.min(canvas.height-1,pos.y+r); y++) {
-                    for(let x=Math.max(0,pos.x-r); x<=Math.min(canvas.width-1,pos.x+r); x++) {
-                        if((x-pos.x)**2 + (y-pos.y)**2 <= r**2) {
-                            let idx = (y*canvas.width + x)*4;
+                let cur = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                let orig = canvasOriginal.getImageData(0, 0, canvas.width, canvas.height);
+                
+                for(let y = Math.max(0, pos.y - r); y <= Math.min(canvas.height - 1, pos.y + r); y++) {
+                    for(let x = Math.max(0, pos.x - r); x <= Math.min(canvas.width - 1, pos.x + r); x++) {
+                        if((x - pos.x)**2 + (y - pos.y)**2 <= r**2) {
+                            let idx = (y * canvas.width + x) * 4;
                             if (magico && strokeTargetColor) {
-                                let cR = modoActual==='borrar'?cur.data[idx]:orig.data[idx], cG = modoActual==='borrar'?cur.data[idx+1]:orig.data[idx+1], cB = modoActual==='borrar'?cur.data[idx+2]:orig.data[idx+2];
-                                if (Math.sqrt((cR-strokeTargetColor.r)**2 + (cG-strokeTargetColor.g)**2 + (cB-strokeTargetColor.b)**2) > tol) continue;
+                                let cR = modoActual === 'borrar' ? cur.data[idx] : orig.data[idx];
+                                let cG = modoActual === 'borrar' ? cur.data[idx+1] : orig.data[idx+1];
+                                let cB = modoActual === 'borrar' ? cur.data[idx+2] : orig.data[idx+2];
+                                if (Math.sqrt((cR - strokeTargetColor.r)**2 + (cG - strokeTargetColor.g)**2 + (cB - strokeTargetColor.b)**2) > tol) continue;
                             }
-                            if (modoActual==='borrar') cur.data[idx+3] = 0;
-                            else { cur.data[idx]=orig.data[idx]; cur.data[idx+1]=orig.data[idx+1]; cur.data[idx+2]=orig.data[idx+2]; cur.data[idx+3]=orig.data[idx+3]; }
+                            if (modoActual === 'borrar') {
+                                cur.data[idx+3] = 0;
+                            } else { 
+                                cur.data[idx] = orig.data[idx]; 
+                                cur.data[idx+1] = orig.data[idx+1]; 
+                                cur.data[idx+2] = orig.data[idx+2]; 
+                                cur.data[idx+3] = orig.data[idx+3]; 
+                            }
                         }
                     }
                 }
                 ctx.putImageData(cur, 0, 0);
             }
-            ctxOverlay.clearRect(0,0,overlay.width,overlay.height); ctxOverlay.beginPath(); ctxOverlay.arc(pos.x,pos.y,document.getElementById('brush-size').value,0,Math.PI*2); ctxOverlay.fillStyle='rgba(239,68,68,0.3)'; ctxOverlay.fill();
+            ctxOverlay.clearRect(0, 0, overlay.width, overlay.height); 
+            ctxOverlay.beginPath(); 
+            ctxOverlay.arc(pos.x, pos.y, document.getElementById('brush-size').value, 0, Math.PI * 2); 
+            ctxOverlay.fillStyle = 'rgba(239,68,68,0.3)'; 
+            ctxOverlay.fill();
         }
 
-        canvas.addEventListener('mousedown', e => { isDrawing = true; let p = getPointerPos(e); let s = modoActual==='borrar'?ctx.getImageData(p.x,p.y,1,1).data:ctxOriginal.getImageData(p.x,p.y,1,1).data; strokeTargetColor={r:s[0],g:s[1],b:s[2]}; draw(e); });
+        canvas.addEventListener('mousedown', e => { 
+            isDrawing = true; 
+            let p = getPointerPos(e); 
+            let s = modoActual === 'borrar' ? ctx.getImageData(p.x, p.y, 1, 1).data : ctxOriginal.getImageData(p.x, p.y, 1, 1).data; 
+            strokeTargetColor = {r: s[0], g: s[1], b: s[2]}; 
+            draw(e); 
+        });
         canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', () => { if(isDrawing){ isDrawing=false; ctxOverlay.clearRect(0,0,overlay.width,overlay.height); guardarEstadoHistorial(); }});
-        canvas.addEventListener('touchstart', e => { isDrawing = true; let p = getPointerPos(e); let s = modoActual==='borrar'?ctx.getImageData(p.x,p.y,1,1).data:ctxOriginal.getImageData(p.x,p.y,1,1).data; strokeTargetColor={r:s[0],g:s[1],b:s[2]}; draw(e); }, {passive:false});
-        canvas.addEventListener('touchmove', draw, {passive:false});
-        canvas.addEventListener('touchend', () => { if(isDrawing){ isDrawing=false; ctxOverlay.clearRect(0,0,overlay.width,overlay.height); guardarEstadoHistorial(); }});
+        canvas.addEventListener('mouseup', () => { 
+            if(isDrawing){ 
+                isDrawing = false; 
+                ctxOverlay.clearRect(0, 0, overlay.width, overlay.height); 
+                guardarEstadoHistorial(); 
+            }
+        });
+        canvas.addEventListener('touchstart', e => { 
+            isDrawing = true; 
+            let p = getPointerPos(e); 
+            let s = modoActual === 'borrar' ? ctx.getImageData(p.x, p.y, 1, 1).data : ctxOriginal.getImageData(p.x, p.y, 1, 1).data; 
+            strokeTargetColor = {r: s[0], g: s[1], b: s[2]}; 
+            draw(e); 
+        }, {passive: false});
+        canvas.addEventListener('touchmove', draw, {passive: false});
+        canvas.addEventListener('touchend', () => { 
+            if(isDrawing){ 
+                isDrawing = false; 
+                ctxOverlay.clearRect(0, 0, overlay.width, overlay.height); 
+                guardarEstadoHistorial(); 
+            }
+        });
         
-        function guardarResultadoFinal() { canvas.toBlob(b => prepararDescarga(b, 'png', '¡Imagen lista!'), 'image/png'); }
+        function guardarResultadoFinal() { 
+            canvas.toBlob(b => prepararDescarga(b, 'png', '¡Imagen lista!'), 'image/png'); 
+        }
 
-        // PDF, Recorte y Compresión
-        function cambiarModoPdf() { let m = document.getElementById('modo-pdf').value; document.getElementById('seccion-unir').style.display = m==='unir'?'block':'none'; document.getElementById('seccion-dividir').style.display = m==='dividir'?'block':'none'; }
-        function updateLabelPdf(t) { let i = document.getElementById(`input-${t}-pdf`), l = document.getElementById(`label-${t}-pdf`); if(i.files.length) { l.innerText = t==='unir'?`✅ ${i.files.length} archivos`:`✅ ${i.files[0].name}`; l.style.borderColor = l.style.color = "#34d399"; } }
+        // =========================================================================
+        // MÓDULO DE PDF, RECORTE Y COMPRESIÓN
+        // =========================================================================
+        function cambiarModoPdf() { 
+            let m = document.getElementById('modo-pdf').value; 
+            document.getElementById('seccion-unir').style.display = m === 'unir' ? 'block' : 'none'; 
+            document.getElementById('seccion-dividir').style.display = m === 'dividir' ? 'block' : 'none'; 
+        }
+
+        function updateLabelPdf(t) { 
+            let i = document.getElementById(`input-${t}-pdf`);
+            let l = document.getElementById(`label-${t}-pdf`); 
+            if(i.files.length) { 
+                l.innerText = t === 'unir' ? `✅ ${i.files.length} archivos` : `✅ ${i.files[0].name}`; 
+                l.style.borderColor = l.style.color = "#34d399"; 
+            } 
+        }
+
         async function procesarUnirPdf() {
-            let input = document.getElementById('input-unir-pdf'); if (input.files.length < 2) return alert("Selecciona 2 PDFs.");
-            try { const merged = await PDFLib.PDFDocument.create(); for (let f of input.files) { let doc = await PDFLib.PDFDocument.load(await f.arrayBuffer()); (await merged.copyPages(doc, doc.getPageIndices())).forEach(p => merged.addPage(p)); } prepararDescarga(new Blob([await merged.save()], { type: 'application/pdf' }), 'pdf', '¡PDFs unidos!'); } catch (e) { alert("Error."); }
+            let input = document.getElementById('input-unir-pdf'); 
+            if (input.files.length < 2) return alert("Selecciona al menos 2 PDFs.");
+            try { 
+                const merged = await PDFLib.PDFDocument.create(); 
+                for (let f of input.files) { 
+                    let doc = await PDFLib.PDFDocument.load(await f.arrayBuffer()); 
+                    (await merged.copyPages(doc, doc.getPageIndices())).forEach(p => merged.addPage(p)); 
+                } 
+                prepararDescarga(new Blob([await merged.save()], { type: 'application/pdf' }), 'pdf', '¡PDFs unidos con éxito!'); 
+            } catch (e) { 
+                alert("Error al unir los archivos PDF."); 
+            }
         }
+
         async function procesarDividirPdf() {
-            let i = document.getElementById('input-dividir-pdf'); if (!i.files[0]) return; let n = parseInt(document.getElementById('input-pagina-pdf').value) - 1;
-            try { let doc = await PDFLib.PDFDocument.load(await i.files[0].arrayBuffer()); const sub = await PDFLib.PDFDocument.create(); let [p] = await sub.copyPages(doc, [n]); sub.addPage(p); prepararDescarga(new Blob([await sub.save()], { type: 'application/pdf' }), 'pdf', '¡Página extraída!'); } catch (e) { alert("Error."); }
+            let i = document.getElementById('input-dividir-pdf'); 
+            if (!i.files[0]) return alert("Selecciona un PDF."); 
+            let n = parseInt(document.getElementById('input-pagina-pdf').value) - 1;
+            try { 
+                let doc = await PDFLib.PDFDocument.load(await i.files[0].arrayBuffer()); 
+                const sub = await PDFLib.PDFDocument.create(); 
+                let [p] = await sub.copyPages(doc, [n]); 
+                sub.addPage(p); 
+                prepararDescarga(new Blob([await sub.save()], { type: 'application/pdf' }), 'pdf', '¡Página extraída con éxito!'); 
+            } catch (e) { 
+                alert("Error al extraer la página."); 
+            }
         }
-        async function procesarCompresion() { let i = document.getElementById('input-comprimir').files[0]; if(i) prepararDescarga(await imageCompression(i, { maxSizeMB: 0.8 }), i.name.split('.').pop(), '¡Comprimido!'); }
-        async function procesarConversion() { let i = document.getElementById('input-convertir').files[0], f = document.getElementById('formato-salida').value; if(i) prepararDescarga(await imageCompression(i, { maxSizeMB: 5, fileType: f }), f.split('/')[1], '¡Convertido!'); }
+
+        async function procesarCompresion() { 
+            let i = document.getElementById('input-comprimir').files[0]; 
+            if(i) prepararDescarga(await imageCompression(i, { maxSizeMB: 0.8 }), i.name.split('.').pop(), '¡Imagen comprimida con éxito!'); 
+        }
+
+        async function procesarConversion() { 
+            let i = document.getElementById('input-convertir').files[0];
+            let f = document.getElementById('formato-salida').value; 
+            if(i) prepararDescarga(await imageCompression(i, { maxSizeMB: 5, fileType: f }), f.split('/')[1], '¡Formato convertido con éxito!'); 
+        }
         
         let cropper = null;
-        function prepararRecortar(e) { updateLabel('recortar'); let f = e.target.files[0]; if(!f) return; let r = new FileReader(); r.onload = ev => { let i = document.getElementById('cropper-image'); i.src = ev.target.result; document.getElementById('cropper-container').style.display = document.getElementById('btn-recortar').style.display = 'block'; if(cropper) cropper.destroy(); cropper = new Cropper(i, { viewMode: 2 }); }; r.readAsDataURL(f); }
-        function procesarRecorte() { if(cropper) cropper.getCroppedCanvas().toBlob(b => prepararDescarga(b, 'png', '¡Recortado!'), 'image/png'); }
+        function prepararRecortar(e) { 
+            updateLabel('recortar'); 
+            let f = e.target.files[0]; 
+            if(!f) return; 
+            let r = new FileReader(); 
+            r.onload = ev => { 
+                let i = document.getElementById('cropper-image'); 
+                i.src = ev.target.result; 
+                document.getElementById('cropper-container').style.display = document.getElementById('btn-recortar').style.display = 'block'; 
+                if(cropper) cropper.destroy(); 
+                cropper = new Cropper(i, { viewMode: 2 }); 
+            }; 
+            r.readAsDataURL(f); 
+        }
+
+        function procesarRecorte() { 
+            if(cropper) cropper.getCroppedCanvas().toBlob(b => prepararDescarga(b, 'png', '¡Imagen recortada con éxito!'), 'image/png'); 
+        }
     </script>
 </body>
 </html>
