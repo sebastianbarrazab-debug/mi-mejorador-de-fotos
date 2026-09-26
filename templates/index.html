@@ -42,6 +42,9 @@
         .btn-action:hover { background: #1d4ed8; }
         .btn-action:disabled { background: #4b5563; cursor: not-allowed; box-shadow: none; }
         
+        .btn-ia { background: #8b5cf6; box-shadow: 0 4px 6px -1px rgba(139,92,246,0.4); margin-bottom: 15px; }
+        .btn-ia:hover { background: #7c3aed; }
+
         .img-container { width: 100%; max-height: 400px; margin-bottom: 20px; display: none; background: #000; border-radius: 8px; overflow: hidden; }
         .img-container img { max-width: 100%; display: block; }
 
@@ -67,27 +70,33 @@
 
     <div class="container">
         
-        <!-- NUEVA HERRAMIENTA: BORRADOR MANUAL -->
+        <!-- HERRAMIENTA: BORRADOR (IA + MANUAL) -->
         <div id="tab-borrador" class="tab-content active">
             <div class="card">
-                <h2>Borrador Manual de Fondo</h2>
-                <p>Pinta en rojo las partes que quieres eliminar. Al soltar, se borrarán.</p>
+                <h2>Borrador de Fondo</h2>
+                <p>Usa la Inteligencia Artificial para un borrado perfecto, o hazlo manualmente pintando de rojo las zonas a eliminar.</p>
                 <label for="input-borrador" class="file-label" id="label-borrador">📁 Seleccionar foto</label>
                 <input type="file" id="input-borrador" accept="image/*" onchange="prepararBorrador(event)">
                 
-                <div id="herramientas-borrador" style="display:none; margin-top: 20px;">
+                <div id="opciones-borrador" style="display:none; margin-top: 15px;">
+                    <!-- Botón IA -->
+                    <button class="btn-action btn-ia" id="btn-borrado-ia" onclick="procesarBorradoIA()">✨ Borrado Mágico Automático (IA)</button>
+                    
+                    <hr style="border-color: #374151; margin: 20px 0;">
+                    
+                    <!-- Herramientas Manuales -->
+                    <h3 style="font-size: 16px; margin-bottom: 10px; text-align: left; color: #e2e8f0;">O hacerlo manualmente:</h3>
                     <p style="margin: 5px 0; color: #94a3b8; font-size: 13px; text-align: left;">Tamaño del Pincel:</p>
                     <input type="range" id="brush-size" min="5" max="100" value="30" style="width: 100%; margin-bottom: 15px;">
                     
-                    <!-- Fondo cuadriculado estilo Photoshop para ver la transparencia -->
                     <div style="position: relative; background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGlpSUGIg3m5eVlYGIYNYBhmIQBvYEPAwAwLwH9rS1X+QAAAABJRU5ErkJggg==') repeat; border-radius: 8px; border: 1px solid #374151; overflow: hidden; display: inline-block; background-color: #fff; max-width: 100%;">
-                        <!-- Lienzo de la imagen real -->
+                        <!-- Lienzo original -->
                         <canvas id="canvas-borrador" style="cursor: crosshair; display: block; max-width: 100%; touch-action: none;"></canvas>
                         <!-- Lienzo superpuesto para pintar en rojo transparente -->
                         <canvas id="canvas-rojo" style="position: absolute; top: 0; left: 0; pointer-events: none; opacity: 0.5;"></canvas>
                     </div>
                     
-                    <button class="btn-action" style="margin-top: 20px;" onclick="guardarFondoBorrado()">📥 Descargar PNG sin fondo</button>
+                    <button class="btn-action" style="margin-top: 20px;" onclick="guardarFondoBorrado()">📥 Descargar PNG sin fondo (Manual)</button>
                 </div>
             </div>
         </div>
@@ -217,7 +226,7 @@
             }
         }
 
-        // --- LÓGICA DEL BORRADOR MANUAL CON MÁSCARA ROJA ---
+        // --- LÓGICA DEL BORRADOR (IA Y MANUAL) ---
         let canvasBorrador = document.getElementById('canvas-borrador');
         let ctxBorrador = canvasBorrador.getContext('2d', { willReadFrequently: true });
         
@@ -235,7 +244,6 @@
             reader.onload = function(e) {
                 let img = new Image();
                 img.onload = function() {
-                    // Ajustamos el tamaño máximo para que encaje en móviles y PC
                     let maxWidth = 500;
                     let scale = 1;
                     if (img.width > maxWidth) {
@@ -245,25 +253,57 @@
                     canvasBorrador.width = img.width * scale;
                     canvasBorrador.height = img.height * scale;
                     
-                    // Sincronizar el tamaño del lienzo rojo
                     canvasRojo.width = canvasBorrador.width;
                     canvasRojo.height = canvasBorrador.height;
                     
-                    // Reseteamos el contexto y dibujamos la foto original
                     ctxBorrador.globalCompositeOperation = "source-over";
                     ctxBorrador.drawImage(img, 0, 0, canvasBorrador.width, canvasBorrador.height);
                     
-                    // Asegurar que el canvas rojo esté limpio
                     ctxRojo.clearRect(0, 0, canvasRojo.width, canvasRojo.height);
                     
-                    document.getElementById('herramientas-borrador').style.display = 'block';
+                    document.getElementById('opciones-borrador').style.display = 'block';
                 }
                 img.src = e.target.result;
             }
             reader.readAsDataURL(file);
         }
 
-        // Obtener posición exacta del ratón o dedo en el canvas
+        // Función para el botón IA
+        async function procesarBorradoIA() {
+            let inputElement = document.getElementById('input-borrador');
+            if (!inputElement || !inputElement.files || !inputElement.files[0]) return alert("Selecciona una foto primero.");
+
+            let boton = document.getElementById('btn-borrado-ia');
+            boton.innerText = "⏳ Procesando con IA...";
+            boton.disabled = true;
+
+            let data = new FormData();
+            data.append("foto", inputElement.files[0]);
+            document.getElementById('texto-estado').innerText = "Eliminando fondo con Inteligencia Artificial...";
+            document.getElementById('seccion-anuncio').style.display = 'block';
+
+            try {
+                // Asegúrate de tener este endpoint configurado en tu servidor backend
+                let res = await fetch('/borrar-fondo-ia', { method: 'POST', body: data });
+                let json = await res.json();
+                
+                if (json.descarga_url) {
+                    urlDescargaServidor = json.descarga_url;
+                    blobDescargaLocal = null;
+                    extensionDescargaLocal = "png";
+                    arrancarTemporizadorAnuncio();
+                } else {
+                    alert("Error en el servidor al procesar la IA.");
+                }
+            } catch (error) {
+                alert("Error de conexión con el servidor IA.");
+            } finally {
+                boton.innerText = "✨ Borrado Mágico Automático (IA)";
+                boton.disabled = false;
+            }
+        }
+
+        // Funciones del Borrador Manual
         function getPointerPos(e) {
             let rect = canvasBorrador.getBoundingClientRect();
             let clientX = e.clientX || (e.touches && e.touches[0].clientX);
@@ -281,13 +321,12 @@
 
         function draw(e) {
             if (!isDrawing) return;
-            e.preventDefault(); // Evita que la pantalla haga scroll al borrar en móviles
+            e.preventDefault();
 
             let pos = getPointerPos(e);
             let brushSize = document.getElementById('brush-size').value;
 
-            // PINTAMOS EN ROJO SOBRE EL LIENZO SUPERPUESTO (No borramos aún)
-            ctxRojo.strokeStyle = "#ff0000"; // Color rojo
+            ctxRojo.strokeStyle = "#ff0000";
             ctxRojo.lineWidth = brushSize;
             ctxRojo.lineCap = "round";
             ctxRojo.lineJoin = "round";
@@ -302,24 +341,20 @@
             if (!isDrawing) return;
             isDrawing = false;
             
-            ctxRojo.beginPath(); // Cerramos el trazo rojo
+            ctxRojo.beginPath();
 
-            // AHORA SÍ: Usamos la mancha roja como "molde" para borrar la imagen original
             ctxBorrador.globalCompositeOperation = "destination-out";
             ctxBorrador.drawImage(canvasRojo, 0, 0);
-            ctxBorrador.globalCompositeOperation = "source-over"; // Restauramos el modo normal
+            ctxBorrador.globalCompositeOperation = "source-over";
             
-            // Limpiamos el lienzo rojo para el siguiente trazo
             ctxRojo.clearRect(0, 0, canvasRojo.width, canvasRojo.height);
         }
 
-        // Escuchadores de eventos para Ratón (PC)
         canvasBorrador.addEventListener('mousedown', startDrawing);
         canvasBorrador.addEventListener('mousemove', draw);
         canvasBorrador.addEventListener('mouseup', stopDrawing);
         canvasBorrador.addEventListener('mouseleave', stopDrawing);
 
-        // Escuchadores de eventos para Táctil (Móviles)
         canvasBorrador.addEventListener('touchstart', startDrawing, {passive: false});
         canvasBorrador.addEventListener('touchmove', draw, {passive: false});
         canvasBorrador.addEventListener('touchend', stopDrawing);
@@ -328,7 +363,7 @@
             canvasBorrador.toBlob((blob) => {
                 blobDescargaLocal = blob;
                 urlDescargaServidor = "";
-                extensionDescargaLocal = "png"; // PNG para mantener la transparencia
+                extensionDescargaLocal = "png";
                 document.getElementById('texto-estado').innerText = "¡Fondo borrado con éxito!";
                 document.getElementById('seccion-anuncio').style.display = 'block';
                 arrancarTemporizadorAnuncio();
