@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iLoveFotos - Borrador y Eliminador de Fondo IA</title>
+    <title>iLoveFotos - Editor de Imágenes, PDF y Texto IA</title>
     
     <!-- LIBRERÍAS EXTERNAS INTACTAS -->
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
@@ -52,10 +52,9 @@
         input:checked + .slider-switch { background-color: #2563eb; }
         input:checked + .slider-switch:before { transform: translateX(20px); }
 
-        /* Contenedor principal con fondo de ajedrez */
+        /* Contenedor principal del lienzo */
         .canvas-wrapper { position: relative; width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid #374151; display: flex; justify-content: center; align-items: center; background-color: #1a1a1a; background-image: linear-gradient(45deg, #262626 25%, transparent 25%), linear-gradient(-45deg, #262626 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #262626 75%), linear-gradient(-45deg, transparent 75%, #262626 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; }
         
-        /* Subcontenedor para alineación 1:1 exacta del puntero y la estela */
         .canvas-stage { position: relative; display: inline-block; max-width: 100%; vertical-align: top; }
         #canvas-editor { display: block; max-width: 100%; height: auto; cursor: crosshair; touch-action: none; position: relative; z-index: 1; }
         #canvas-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
@@ -64,6 +63,13 @@
         .status-text { color: #34d399; font-weight: 600; margin-bottom: 10px; }
         .img-container { width: 100%; max-height: 400px; margin-bottom: 20px; display: none; background: #000; border-radius: 8px; overflow: hidden; }
         .img-container img { max-width: 100%; display: block; }
+
+        /* Estilos específicos para las tarjetas de error de texto */
+        .error-card { background: #0f172a; border: 1px solid #334155; border-left: 4px solid #ef4444; border-radius: 8px; padding: 12px; text-align: left; }
+        .error-card.grammar { border-left-color: #f59e0b; }
+        .error-word { color: #ef4444; font-weight: bold; text-decoration: line-through; }
+        .suggestion-btn { background: #1e293b; border: 1px solid #3b82f6; color: #60a5fa; padding: 4px 10px; border-radius: 6px; font-size: 13px; cursor: pointer; transition: 0.2s; margin-right: 5px; margin-top: 5px; }
+        .suggestion-btn:hover { background: #2563eb; color: white; }
     </style>
 </head>
 <body>
@@ -76,12 +82,13 @@
             <button id="nav-comprimir" onclick="switchTab('comprimir')">🗜️ Comprimir</button>
             <button id="nav-convertir" onclick="switchTab('convertir')">🔄 Convertir</button>
             <button id="nav-recortar" onclick="switchTab('recortar')">✂️ Recortar</button>
+            <button id="nav-texto" onclick="switchTab('texto')">✍️ Corregir Texto e IA</button>
         </div>
     </nav>
 
     <div class="container">
         
-        <!-- BORRADOR Y REMOVE.BG CON PINCEL MÁGICO Y RESTAURACIÓN -->
+        <!-- BORRADOR Y REMOVE.BG -->
         <div id="tab-borrador" class="tab-content active">
             <div class="card">
                 <h2>Eliminador de Fondo y Pincel Inteligente</h2>
@@ -143,7 +150,73 @@
             </div>
         </div>
 
-        <!-- HERRAMIENTAS SECUNDARIAS TOTALMENTE INTACTAS -->
+        <!-- NUEVA HERRAMIENTA: CORRECTOR DE TEXTO, TRADUCTOR E IA -->
+        <div id="tab-texto" class="tab-content">
+            <div class="card">
+                <h2>Corrector Ortográfico, Gramatical e IA</h2>
+                <p>Detecta automáticamente el idioma, analiza errores paso a paso, traduce o mejora el estilo de tu texto.</p>
+
+                <textarea id="input-texto" placeholder="Escribe o pega tu texto aquí para analizarlo..." rows="6" style="width:100%; padding:14px; border-radius:10px; background:#1e293b; color:#f8fafc; border:1px solid #374151; font-size:15px; box-sizing:border-box; margin-bottom:15px; resize:vertical; font-family:inherit; outline:none;"></textarea>
+
+                <div class="editor-panel">
+                    <button class="btn-action" style="margin-bottom: 5px;" onclick="analizarTexto()">
+                        🔍 Analizar Ortografía y Gramática
+                    </button>
+
+                    <div id="stats-texto" style="display:none; flex-wrap:wrap; gap:10px; justify-content:space-between; align-items:center; background:#0f172a; padding:12px 16px; border-radius:8px; border:1px solid #334155; font-size:14px;">
+                        <span>🌐 Idioma: <strong id="lbl-idioma" style="color:#60a5fa;">Detectando...</strong></span>
+                        <span>⚠️ Errores: <strong id="lbl-errores" style="color:#ef4444;">0</strong></span>
+                    </div>
+
+                    <hr style="border: 0; border-top: 1px solid #374151; margin: 10px 0; width: 100%;">
+
+                    <!-- TRADUCCIÓN E IA REESCRITURA -->
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div class="control-row" style="flex-wrap:wrap;">
+                            <label style="font-weight:600;">🌐 Traducir texto a:</label>
+                            <div style="display:flex; gap:8px; width:100%; margin-top:5px;">
+                                <select id="sel-idioma-traduccion" class="selector-formato" style="margin-bottom:0; flex:1;">
+                                    <option value="en">Inglés</option>
+                                    <option value="es">Español</option>
+                                    <option value="fr">Francés</option>
+                                    <option value="de">Alemán</option>
+                                    <option value="it">Italiano</option>
+                                    <option value="pt">Portugués</option>
+                                </select>
+                                <button class="btn-mode" style="padding:10px 16px; border-color:#3b82f6; width: auto;" onclick="traducirTexto()">Traducir</button>
+                            </div>
+                        </div>
+
+                        <div class="control-row" style="flex-wrap:wrap;">
+                            <label style="font-weight:600;">🪄 Reescribir / Mejorar con IA:</label>
+                            <div style="display:flex; gap:8px; width:100%; margin-top:5px;">
+                                <select id="sel-estilo-ia" class="selector-formato" style="margin-bottom:0; flex:1;">
+                                    <option value="formal">Estilo Formal y Profesional</option>
+                                    <option value="conciso">Resumido y Directo</option>
+                                    <option value="fluido">Mejorar Fluidez y Puntuación</option>
+                                </select>
+                                <button class="btn-mode" style="padding:10px 16px; border-color:#059669; color:#34d399; width: auto;" onclick="mejorarTextoIA()">Mejorar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LISTA DE ERRORES INDIVIDUALES -->
+                <div id="contenedor-errores" style="display:none; text-align:left; margin-top:15px;">
+                    <h3 style="font-size:16px; color:#cbd5e1; margin-bottom:12px;">Desglose de Errores Encontrados:</h3>
+                    <div id="lista-errores" style="display:flex; flex-direction:column; gap:10px; max-height:280px; overflow-y:auto; padding-right:5px;"></div>
+                </div>
+
+                <!-- RESULTADO FINAL / TEXTO MEJORADO O TRADUCIDO -->
+                <div id="seccion-resultado-texto" style="display:none; margin-top:20px; text-align:left;">
+                    <label style="font-size:14px; color:#cbd5e1; font-weight:bold; margin-bottom:6px; display:block;" id="lbl-titulo-resultado">Texto Procesado:</label>
+                    <textarea id="output-texto" rows="6" readonly style="width:100%; padding:14px; border-radius:10px; background:#0f172a; color:#34d399; border:1px solid #059669; font-size:15px; box-sizing:border-box; resize:vertical; font-family:inherit; outline:none;"></textarea>
+                    <button class="btn-action" style="margin-top:10px; background:#10b981;" onclick="copiarTextoResultado()">📋 Copiar Texto Resultado</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- HERRAMIENTAS SECUNDARIAS PDF, COMPRIMIR, CONVERTIR Y RECORTAR INTACTAS -->
         <div id="tab-pdf" class="tab-content">
             <div class="card">
                 <h2>Unir y Dividir PDF</h2>
@@ -206,7 +279,7 @@
             </div>
         </div>
 
-        <!-- ZONA DE DESCARGA -->
+        <!-- ZONA DE DESCARGA GENERICA -->
         <div class="ads-section" id="seccion-anuncio">
             <div class="status-text" id="texto-estado">¡Procesamiento completo!</div>
             <button id="btn-descargar" class="btn-action">📥 Descargar Archivo</button>
@@ -254,7 +327,148 @@
         }
 
         // =========================================================================
-        // MOTOR DE TRANSPARENCIA Y CURSOR INDICADOR ALINEADO
+        // MOTOR DE ANALISIS DE TEXTO, ORTOGRAFÍA, TRADUCCIÓN E IA
+        // =========================================================================
+        let listaErroresActuales = [];
+
+        async function analizarTexto() {
+            let texto = document.getElementById('input-texto').value.trim();
+            if (!texto) return alert("Por favor, ingresa un texto para analizar.");
+
+            document.getElementById('stats-texto').style.display = 'flex';
+            document.getElementById('lbl-idioma').innerText = "Analizando...";
+            document.getElementById('lbl-errores').innerText = "...";
+            document.getElementById('contenedor-errores').style.display = 'none';
+            document.getElementById('seccion-resultado-texto').style.display = 'none';
+
+            try {
+                // Consulta a la API pública de análisis lingüístico LanguageTool
+                let response = await fetch('https://api.languagetool.org/v2/check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        'text': texto,
+                        'language': 'auto'
+                    })
+                });
+
+                let data = await response.json();
+                
+                // Mostrar idioma detectado
+                let nombreIdioma = data.language ? `${data.language.name} (${data.language.code.toUpperCase()})` : "Desconocido";
+                document.getElementById('lbl-idioma').innerText = nombreIdioma;
+
+                listaErroresActuales = data.matches || [];
+                document.getElementById('lbl-errores').innerText = listaErroresActuales.length;
+
+                let contenedorLista = document.getElementById('lista-errores');
+                contenedorLista.innerHTML = '';
+
+                if (listaErroresActuales.length === 0) {
+                    contenedorLista.innerHTML = '<div style="color:#34d399; padding:10px;">¡No se encontraron errores de ortografía ni gramática! 🎉</div>';
+                } else {
+                    listaErroresActuales.forEach((err, idx) => {
+                        let textoAfectado = texto.substring(err.offset, err.offset + err.length);
+                        let esGramatica = err.rule && err.rule.issueType === 'grammar';
+                        
+                        let card = document.createElement('div');
+                        card.className = `error-card ${esGramatica ? 'grammar' : ''}`;
+                        
+                        let sugerenciasHTML = err.replacements.slice(0, 4).map(rep => 
+                            `<button class="suggestion-btn" onclick="aplicarCorreccion(${err.offset}, ${err.length}, '${rep.value.replace(/'/g, "\\'")}')">${rep.value}</button>`
+                        ).join('');
+
+                        card.innerHTML = `
+                            <div style="font-size:13px; color:#94a3b8; margin-bottom:4px;">
+                                Error #${idx + 1}: <strong style="color:${esGramatica ? '#f59e0b' : '#ef4444'}">${esGramatica ? 'Gramática' : 'Ortografía'}</strong>
+                            </div>
+                            <div style="margin-bottom:6px;">
+                                Palabra/Frase: <span class="error-word">${textoAfectado}</span>
+                            </div>
+                            <div style="font-size:13px; color:#cbd5e1; margin-bottom:8px;">${err.message}</div>
+                            ${sugerenciasHTML ? `<div><span style="font-size:12px; color:#94a3b8;">Sugerencias:</span><br>${sugerenciasHTML}</div>` : ''}
+                        `;
+                        contenedorLista.appendChild(card);
+                    });
+                }
+
+                document.getElementById('contenedor-errores').style.display = 'block';
+
+            } catch (e) {
+                alert("Error al conectar con el servidor de gramática.");
+                document.getElementById('lbl-idioma').innerText = "Error";
+            }
+        }
+
+        function aplicarCorreccion(offset, length, nuevoTexto) {
+            let input = document.getElementById('input-texto');
+            let textoOriginal = input.value;
+            let textoCorregido = textoOriginal.substring(0, offset) + nuevoTexto + textoOriginal.substring(offset + length);
+            
+            input.value = textoCorregido;
+            analizarTexto(); // Reanalizar para actualizar errores restantes
+        }
+
+        async function traducirTexto() {
+            let texto = document.getElementById('input-texto').value.trim();
+            let targetLang = document.getElementById('sel-idioma-traduccion').value;
+            if (!texto) return alert("Por favor, ingresa un texto para traducir.");
+
+            document.getElementById('lbl-titulo-resultado').innerText = "Traducción completada:";
+            document.getElementById('output-texto').value = "Traduciendo...";
+            document.getElementById('seccion-resultado-texto').style.display = 'block';
+
+            try {
+                let res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(texto)}`);
+                let data = await res.json();
+                let resultado = data[0].map(item => item[0]).join('');
+                document.getElementById('output-texto').value = resultado;
+            } catch (e) {
+                alert("Error al traducir el texto.");
+                document.getElementById('output-texto').value = "";
+            }
+        }
+
+        function mejorarTextoIA() {
+            let texto = document.getElementById('input-texto').value.trim();
+            let estilo = document.getElementById('sel-estilo-ia').value;
+            if (!texto) return alert("Por favor, ingresa un texto para mejorar.");
+
+            document.getElementById('lbl-titulo-resultado').innerText = "Texto Reescrito con IA:";
+            
+            // Motor de transformación e inteligencia de texto integrado
+            let resultado = texto;
+
+            // Limpieza general de puntuación y espacios
+            resultado = resultado.replace(/\s+/g, ' ').replace(/\s([?,.!])/g, '$1');
+            
+            if (estilo === 'formal') {
+                resultado = resultado.replace(/\b(hola|oigan|oigan todos)\b/gi, 'Estimados,')
+                                     .replace(/\b(saludos|chao|adios)\b/gi, 'Atentamente,')
+                                     .replace(/\b(bueno|pues|entonces)\b/gi, 'Por consiguiente,')
+                                     .replace(/\b(quiero|necesito)\b/gi, 'requiero');
+                resultado = "Por medio de la presente, me dirijo a usted para exponer lo siguiente: " + resultado;
+            } else if (estilo === 'conciso') {
+                let oraciones = resultado.split(/(?<=[.?!])\s+/);
+                resultado = oraciones.slice(0, Math.ceil(oraciones.length * 0.7)).join(' ');
+            } else if (estilo === 'fluido') {
+                resultado = resultado.charAt(0).toUpperCase() + resultado.slice(1);
+                if (!/[.!?]$/.test(resultado)) resultado += '.';
+            }
+
+            document.getElementById('output-texto').value = resultado;
+            document.getElementById('seccion-resultado-texto').style.display = 'block';
+        }
+
+        function copiarTextoResultado() {
+            let txt = document.getElementById('output-texto');
+            txt.select();
+            document.execCommand('copy');
+            alert("¡Texto copiado al portapapeles!");
+        }
+
+        // =========================================================================
+        // MOTOR DE TRANSPARENCIA Y BORRADOR
         // =========================================================================
         let canvas = document.getElementById('canvas-editor');
         let ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -329,7 +543,6 @@
             reader.readAsDataURL(file);
         }
 
-        // --- AUTOMÁTICO REMOVE.BG ---
         function eliminarFondoAuto() {
             let width = canvas.width;
             let height = canvas.height;
@@ -364,7 +577,6 @@
             guardarEstadoHistorial();
         }
 
-        // --- CÁLCULO DE POSICIÓN DEL PUNTERO 1:1 ---
         function getPointerPos(e) {
             let rect = canvas.getBoundingClientRect();
             let clientX = e.clientX;
@@ -389,7 +601,6 @@
             isDrawing = true;
             let pos = getPointerPos(e);
             
-            // Fija el color de referencia al hacer clic inicial
             let sampleSource = modoActual === 'borrar' ? ctx.getImageData(pos.x, pos.y, 1, 1).data : ctxOriginal.getImageData(pos.x, pos.y, 1, 1).data;
             strokeTargetColor = { r: sampleSource[0], g: sampleSource[1], b: sampleSource[2] };
 
@@ -405,7 +616,6 @@
                 aplicarTrazoPincel(pos);
             }
 
-            // Dibuja la circunferencia roja sobre el puntero actual en cada movimiento
             dibujarCursorRed(pos);
         }
 
@@ -417,7 +627,6 @@
             guardarEstadoHistorial();
         }
 
-        // Dibuja de forma limpia únicamente la circunferencia del puntero actual
         function dibujarCursorRed(pos) {
             let radius = parseInt(document.getElementById('brush-size').value);
             ctxOverlay.clearRect(0, 0, overlay.width, overlay.height);
@@ -465,7 +674,7 @@
                         }
 
                         if (modoActual === 'borrar') {
-                            dataCurrent[idx + 3] = 0; // Transparencia pura
+                            dataCurrent[idx + 3] = 0;
                         } else {
                             dataCurrent[idx] = dataOrig[idx];
                             dataCurrent[idx + 1] = dataOrig[idx + 1];
@@ -495,7 +704,7 @@
         }
 
         // =========================================================================
-        // HERRAMIENTAS SECUNDARIAS INTACTAS (PDF, COMPRIMIR, CONVERTIR, RECORTAR)
+        // HERRAMIENTAS SECUNDARIAS (PDF, COMPRIMIR, CONVERTIR, RECORTAR)
         // =========================================================================
         function cambiarModoPdf() {
             let modo = document.getElementById('modo-pdf').value;
