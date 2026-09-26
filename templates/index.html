@@ -1,316 +1,9 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iLoveFotos - Editor de Imágenes, PDF y Texto IA</title>
-    
-    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-
-    <style>
-        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; text-align: center; background: #0b0f19; color: #f1f5f9; padding: 0; margin: 0; }
-        .navbar { background: #111827; padding: 15px 30px; display: flex; justify-content: center; align-items: center; border-bottom: 1px solid #1f2937; flex-wrap: wrap; gap: 15px; }
-        .logo { font-size: 22px; font-weight: bold; color: #3b82f6; text-decoration: none; margin-right: auto; }
-        .logo span { color: #f1f5f9; }
-        .nav-links { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-        .nav-links button { background: transparent; color: #9ca3af; border: none; font-size: 14px; cursor: pointer; padding: 8px 14px; border-radius: 6px; font-weight: 500; transition: 0.2s; }
-        .nav-links button.active, .nav-links button:hover { color: #3b82f6; background: #1e293b; }
-        
-        .container { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; }
-        .tab-content { display: none; width: 100%; max-width: 680px; }
-        .tab-content.active { display: block; }
-        
-        .card { background: #111827; padding: 25px; border-radius: 16px; border: 1px solid #1f2937; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); text-align: center; margin-bottom: 20px; position: relative; }
-        h2 { margin-top: 0; color: #f8fafc; font-size: 24px; }
-        p { color: #94a3b8; font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
-        
-        input[type="file"] { display: none; }
-        .file-label { display: block; background: #1e293b; border: 2px dashed #3b82f6; padding: 22px 20px; border-radius: 10px; cursor: pointer; transition: 0.2s; color: #3b82f6; font-weight: 600; margin-bottom: 20px; word-break: break-all; }
-        .file-label:hover { background: #1e293b; border-color: #60a5fa; color: #60a5fa; }
-        
-        .selector-formato { width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid #374151; font-size: 15px; cursor: pointer; }
-        
-        .btn-action { background: #2563eb; color: white; padding: 14px 28px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; box-shadow: 0 4px 6px -1px rgba(37,99,235,0.4); margin-bottom: 10px; }
-        .btn-action:hover { background: #1d4ed8; }
-        
-        .editor-panel { background: #1e293b; border-radius: 12px; padding: 18px; margin-bottom: 20px; border: 1px solid #374151; display: flex; flex-direction: column; gap: 15px; text-align: left; }
-        
-        .mode-selector { display: flex; gap: 10px; justify-content: center; }
-        .btn-mode { flex: 1; padding: 12px; border: 2px solid #3b82f6; background: transparent; color: #f1f5f9; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
-        .btn-mode.active { background: #2563eb; color: white; }
-
-        .control-row { display: flex; align-items: center; justify-content: space-between; gap: 15px; font-size: 14px; color: #cbd5e1; }
-        
-        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider-switch { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #475569; transition: .3s; border-radius: 24px; }
-        .slider-switch:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-        input:checked + .slider-switch { background-color: #2563eb; }
-        input:checked + .slider-switch:before { transform: translateX(20px); }
-
-        .canvas-wrapper { position: relative; width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid #374151; display: flex; justify-content: center; align-items: center; background-color: #1a1a1a; background-image: linear-gradient(45deg, #262626 25%, transparent 25%), linear-gradient(-45deg, #262626 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #262626 75%), linear-gradient(-45deg, transparent 75%, #262626 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; }
-        
-        .canvas-stage { position: relative; display: inline-block; max-width: 100%; vertical-align: top; }
-        #canvas-editor { display: block; max-width: 100%; height: auto; cursor: crosshair; touch-action: none; position: relative; z-index: 1; }
-        #canvas-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
-
-        .ads-section { display: none; width: 100%; max-width: 680px; padding: 20px; background: #1e293b; border-radius: 12px; border: 1px solid #374151; box-sizing: border-box; margin-top: 20px; }
-        .status-text { color: #34d399; font-weight: 600; margin-bottom: 10px; }
-        .img-container { width: 100%; max-height: 400px; margin-bottom: 20px; display: none; background: #000; border-radius: 8px; overflow: hidden; }
-        .img-container img { max-width: 100%; display: block; }
-
-        .error-card { background: #0f172a; border: 1px solid #334155; border-left: 4px solid #ef4444; border-radius: 8px; padding: 12px; text-align: left; }
-        .error-card.grammar { border-left-color: #f59e0b; }
-        .error-card.punctuation { border-left-color: #3b82f6; }
-        .error-word { color: #ef4444; font-weight: bold; text-decoration: line-through; }
-        .suggestion-btn { background: #1e293b; border: 1px solid #3b82f6; color: #60a5fa; padding: 4px 10px; border-radius: 6px; font-size: 13px; cursor: pointer; transition: 0.2s; margin-right: 5px; margin-top: 5px; }
-        .suggestion-btn:hover { background: #2563eb; color: white; }
-    </style>
-</head>
-<body>
-
-    <nav class="navbar">
-        <a href="#" class="logo">iLove<span>Fotos</span></a>
-        <div class="nav-links">
-            <button id="nav-borrador" class="active" onclick="switchTab('borrador')">✂️ Eliminar Fondo y Borrador</button>
-            <button id="nav-pdf" onclick="switchTab('pdf')">📑 PDF</button>
-            <button id="nav-comprimir" onclick="switchTab('comprimir')">🗜️ Comprimir</button>
-            <button id="nav-convertir" onclick="switchTab('convertir')">🔄 Convertir</button>
-            <button id="nav-recortar" onclick="switchTab('recortar')">✂️ Recortar</button>
-            <button id="nav-texto" onclick="switchTab('texto')">✍️ Corregir Texto</button>
-        </div>
-    </nav>
-
-    <div class="container">
-        
-        <!-- BORRADOR Y REMOVE.BG -->
-        <div id="tab-borrador" class="tab-content active">
-            <div class="card">
-                <h2>Eliminador de Fondo y Pincel Inteligente</h2>
-                <p>Haz clic sobre el color que deseas borrar. El pincel fijará ese tono de referencia sin borrar colores diferentes.</p>
-                
-                <label for="input-borrador" class="file-label" id="label-borrador">📁 Seleccionar foto</label>
-                <input type="file" id="input-borrador" accept="image/*" onchange="prepararImagen(event)">
-                
-                <div id="herramientas-borrador" style="display:none;">
-                    
-                    <button class="btn-action" style="background: #059669; margin-bottom: 15px;" onclick="eliminarFondoAuto()">
-                        🪄 Eliminar Fondo Automáticamente
-                    </button>
-
-                    <div class="editor-panel">
-                        <div class="mode-selector">
-                            <button id="btn-modo-borrar" class="btn-mode active" onclick="setModo('borrar')">⊖ Borrar</button>
-                            <button id="btn-modo-restaurar" class="btn-mode" onclick="setModo('restaurar')">⊕ Restaurar</button>
-                        </div>
-                        <div class="control-row">
-                            <label for="brush-size">Tamaño pincel:</label>
-                            <input type="range" id="brush-size" min="5" max="100" value="25" style="width: 50%;">
-                        </div>
-                        <div class="control-row">
-                            <label for="tolerance-size">Sensibilidad:</label>
-                            <input type="range" id="tolerance-size" min="10" max="120" value="45" style="width: 50%;">
-                        </div>
-                        <div class="control-row">
-                            <span>🪄 Pincel Mágico (Fija color)</span>
-                            <label class="switch">
-                                <input type="checkbox" id="toggle-pincel-magico" checked>
-                                <span class="slider-switch"></span>
-                            </label>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
-                            <button class="btn-mode" style="padding: 6px 12px; font-size: 13px; border-color: #475569;" id="btn-undo" onclick="deshacerAccion()" disabled>↩️ Deshacer</button>
-                        </div>
-                    </div>
-
-                    <div class="canvas-wrapper" id="canvas-container">
-                        <div class="canvas-stage">
-                            <canvas id="canvas-editor"></canvas>
-                            <canvas id="canvas-overlay"></canvas>
-                        </div>
-                    </div>
-                    <button class="btn-action" style="margin-top: 20px;" onclick="guardarResultadoFinal()">📥 Descargar Imagen PNG</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- CORRECTOR DE TEXTO Y TRADUCTOR -->
-        <div id="tab-texto" class="tab-content">
-            <div class="card">
-                <h2>Corrector de Ortografía, Puntuación y Estilo</h2>
-                <p>Escribe tu texto. El sistema detectará faltas de ortografía, gramática, modismos informales y signos de puntuación ausentes.</p>
-
-                <textarea id="input-texto" placeholder="Escribe o pega tu texto aquí para analizarlo..." rows="6" style="width:100%; padding:14px; border-radius:10px; background:#1e293b; color:#f8fafc; border:1px solid #374151; font-size:15px; box-sizing:border-box; margin-bottom:15px; resize:vertical; font-family:inherit; outline:none;"></textarea>
-
-                <div class="editor-panel">
-                    <button class="btn-action" style="margin-bottom: 5px;" onclick="analizarTexto()">
-                        🔍 Detectar Errores, Puntuación y Modismos
-                    </button>
-
-                    <div id="stats-texto" style="display:none; flex-wrap:wrap; gap:10px; justify-content:space-between; align-items:center; background:#0f172a; padding:12px 16px; border-radius:8px; border:1px solid #334155; font-size:14px;">
-                        <span>🌐 Idioma: <strong style="color:#60a5fa;">Español Inteligente (Estricto)</strong></span>
-                        <span>⚠️ Errores: <strong id="lbl-errores" style="color:#ef4444;">0</strong></span>
-                    </div>
-
-                    <hr style="border: 0; border-top: 1px solid #374151; margin: 10px 0; width: 100%;">
-
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                        <div class="control-row" style="flex-wrap:wrap;">
-                            <label style="font-weight:600;">✨ Aplicar mejoras y correcciones:</label>
-                            <div style="display:flex; gap:8px; width:100%; margin-top:5px;">
-                                <select id="sel-estilo-ia" class="selector-formato" style="margin-bottom:0; flex:1;">
-                                    <option value="auto" selected>✨ Arreglar Automáticamente (Modismos, Ortografía y Puntuación)</option>
-                                    <option value="fluido">Mejorar Fluidez y Espaciados</option>
-                                    <option value="formal">Convertir a Estilo Formal</option>
-                                </select>
-                                <button class="btn-mode" style="padding:10px 16px; border-color:#059669; color:#34d399; width: auto;" onclick="mejorarTextoIA()">⚡ Procesar</button>
-                            </div>
-                        </div>
-
-                        <div class="control-row" style="flex-wrap:wrap;">
-                            <label style="font-weight:600;">🌐 Traducir texto a:</label>
-                            <div style="display:flex; gap:8px; width:100%; margin-top:5px;">
-                                <select id="sel-idioma-traduccion" class="selector-formato" style="margin-bottom:0; flex:1;">
-                                    <option value="en">Inglés</option>
-                                    <option value="fr">Francés</option>
-                                    <option value="de">Alemán</option>
-                                    <option value="it">Italiano</option>
-                                    <option value="pt">Portugués</option>
-                                </select>
-                                <button class="btn-mode" style="padding:10px 16px; border-color:#3b82f6; width: auto;" onclick="traducirTexto()">Traducir</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- LISTA DE ERRORES -->
-                <div id="contenedor-errores" style="display:none; text-align:left; margin-top:15px;">
-                    <h3 style="font-size:16px; color:#cbd5e1; margin-bottom:12px;">Desglose de Errores:</h3>
-                    <div id="lista-errores" style="display:flex; flex-direction:column; gap:10px; max-height:280px; overflow-y:auto; padding-right:5px;"></div>
-                </div>
-
-                <!-- RESULTADO FINAL -->
-                <div id="seccion-resultado-texto" style="display:none; margin-top:20px; text-align:left;">
-                    <label style="font-size:14px; color:#cbd5e1; font-weight:bold; margin-bottom:6px; display:block;" id="lbl-titulo-resultado">Texto Procesado:</label>
-                    <textarea id="output-texto" rows="6" readonly style="width:100%; padding:14px; border-radius:10px; background:#0f172a; color:#34d399; border:1px solid #059669; font-size:15px; box-sizing:border-box; resize:vertical; font-family:inherit; outline:none;"></textarea>
-                    <button class="btn-action" style="margin-top:10px; background:#10b981;" onclick="copiarTextoResultado()">📋 Copiar Texto</button>
-                    <button class="btn-mode" style="margin-top:5px; width:100%; border-color:#64748b; color:#cbd5e1;" onclick="reemplazarOriginal()">⬆️ Usar como texto principal</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- HERRAMIENTAS SECUNDARIAS PDF Y COMPRESIÓN -->
-        <div id="tab-pdf" class="tab-content">
-            <div class="card">
-                <h2>Unir y Dividir PDF</h2>
-                <select id="modo-pdf" class="selector-formato" onchange="cambiarModoPdf()">
-                    <option value="unir">Unir varios archivos PDF</option>
-                    <option value="dividir">Extraer una página de un PDF</option>
-                </select>
-
-                <div id="seccion-unir">
-                    <label for="input-unir-pdf" class="file-label" id="label-unir-pdf">📁 Seleccionar PDFs</label>
-                    <input type="file" id="input-unir-pdf" accept="application/pdf" multiple onchange="updateLabelPdf('unir')">
-                    <button class="btn-action" onclick="procesarUnirPdf()">Unir PDFs</button>
-                </div>
-
-                <div id="seccion-dividir" style="display: none;">
-                    <label for="input-dividir-pdf" class="file-label" id="label-dividir-pdf">📁 Seleccionar PDF</label>
-                    <input type="file" id="input-dividir-pdf" accept="application/pdf" onchange="updateLabelPdf('dividir')">
-                    <input type="number" id="input-pagina-pdf" value="1" min="1" class="selector-formato" style="box-sizing:border-box;">
-                    <button class="btn-action" onclick="procesarDividirPdf()">Extraer Página</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="tab-comprimir" class="tab-content">
-            <div class="card">
-                <h2>Comprimir Imagen</h2>
-                <label for="input-comprimir" class="file-label" id="label-comprimir">📁 Seleccionar foto</label>
-                <input type="file" id="input-comprimir" accept="image/jpeg, image/png, image/webp" onchange="updateLabel('comprimir')">
-                <button class="btn-action" onclick="procesarCompresion()">Comprimir Ahora</button>
-            </div>
-        </div>
-
-        <div id="tab-convertir" class="tab-content">
-            <div class="card">
-                <h2>Convertir Formato</h2>
-                <select id="formato-salida" class="selector-formato">
-                    <option value="image/png">Convertir a PNG</option>
-                    <option value="image/jpeg">Convertir a JPG</option>
-                    <option value="image/webp">Convertir a WebP</option>
-                </select>
-                <label for="input-convertir" class="file-label" id="label-convertir">📁 Seleccionar foto</label>
-                <input type="file" id="input-convertir" accept="image/*" onchange="updateLabel('convertir')">
-                <button class="btn-action" onclick="procesarConversion()">Convertir Ahora</button>
-            </div>
-        </div>
-
-        <div id="tab-recortar" class="tab-content">
-            <div class="card">
-                <h2>Recortar Imagen</h2>
-                <label for="input-recortar" class="file-label" id="label-recortar">📁 Seleccionar foto</label>
-                <input type="file" id="input-recortar" accept="image/*" onchange="prepararRecortar(event)">
-                <div class="img-container" id="cropper-container">
-                    <img id="cropper-image" src="">
-                </div>
-                <button class="btn-action" id="btn-recortar" style="display:none;" onclick="procesarRecorte()">Recortar</button>
-            </div>
-        </div>
-
-        <div class="ads-section" id="seccion-anuncio">
-            <div class="status-text" id="texto-estado">¡Procesamiento completo!</div>
-            <button id="btn-descargar" class="btn-action">📥 Descargar Archivo</button>
-        </div>
-
-    </div>
-
-    <script>
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-links button').forEach(el => el.classList.remove('active'));
-            document.getElementById(`tab-${tab}`).classList.add('active');
-            document.getElementById(`nav-${tab}`).classList.add('active');
-            document.getElementById('seccion-anuncio').style.display = 'none';
-        }
-
-        function updateLabel(tipo) {
-            let input = document.getElementById(`input-${tipo}`);
-            let label = document.getElementById(`label-${tipo}`);
-            if (input && input.files && input.files[0]) {
-                label.innerText = "✅ " + input.files[0].name;
-                label.style.borderColor = "#34d399";
-                label.style.color = "#34d399";
-            }
-        }
-
-        let blobDescargaLocal = null;
-        let extensionDescargaLocal = "png";
-        function prepararDescarga(blob, extension, mensaje) {
-            blobDescargaLocal = blob;
-            extensionDescargaLocal = extension;
-            document.getElementById('texto-estado').innerText = mensaje;
-            document.getElementById('seccion-anuncio').style.display = 'block';
-            document.getElementById('btn-descargar').onclick = () => {
-                let url = URL.createObjectURL(blobDescargaLocal);
-                let a = document.createElement('a');
-                a.href = url;
-                a.download = `ilovefotos_editado.${extensionDescargaLocal}`;
-                a.click();
-            };
-        }
-
-        // =========================================================================
-        // MOTOR DE TEXTO INTELIGENTE (Corrección de modismos, chat y puntuación)
+// =========================================================================
+        // MOTOR DE TEXTO INTELIGENTE (Corrección avanzada de modismos, preguntas y puntuación)
         // =========================================================================
 
-        // Diccionario avanzado para corregir modismos de chat y expresiones incompletas comunes
         function normalizarModismosTexto(texto) {
             let limpio = texto;
-            // Reemplazos contextuales con límites de palabras (\b) para evitar romper palabras completas
             const diccionario = [
                 { regex: /\bnc\b/gi, reemplazo: 'no sé' },
                 { regex: /\bq\b/gi, reemplazo: 'que' },
@@ -326,12 +19,60 @@
             });
             return limpio;
         }
+
+        // Corrector estricto de puntuación, espacios y delimitación de preguntas en español
+        function corregirPuntuacionYEstructura(texto) {
+            let limpio = texto.trim();
+
+            // 1. Corregir espacios antes de signos de puntuación
+            limpio = limpio.replace(/\s+([,.;:?!])/g, '$1');
+
+            // 2. Asegurar espacio después de signos de puntuación si falta
+            limpio = limpio.replace(/([,.;:?!])(?=[^\s])/g, '$1 ');
+
+            // 3. Detección y corrección inteligente de preguntas (Añadir ¿ y ?)
+            // Palabras interrogativas comunes en español
+            const interrogativos = /\b(que|como|cuando|donde|quien|por que|cuanto|cual|cuales|porqué)\b/i;
+            
+            let frases = limpio.split(/([.?!]\s+|\n+)/);
+            let resultadoFrases = [];
+
+            for (let i = 0; i < frases.length; i++) {
+                let frase = frases[i].trim();
+                if (!frase) continue;
+
+                // Si la frase empieza con palabra interrogativa o tiene tono de pregunta pero le falta el ¿ o el ?
+                let esInterrogativa = interrogativos.test(frase) || /^(es|son|tiene|tienes|puedes|sabes|quieres|haces|donde|cuando)\b/i.test(frase);
+                
+                if (esInterrogativa) {
+                    // Si no tiene signo de interrogación al inicio, se lo agregamos
+                    if (!frase.startsWith('¿') && !frase.startsWith('¡')) {
+                        // Buscar si hay una conjunción inicial o pronombre para ubicar bien el ¿
+                        frase = '¿' + frase;
+                    }
+                    // Asegurar cierre con ?
+                    if (!frase.endsWith('?') && !frase.endsWith('!')) {
+                        frase = frase.replace(/[.,;:]*$/, '?');
+                    }
+                } else {
+                    // Si es frase normal, asegurar punto final si no tiene signo
+                    if (!/[.?!]$/.test(frase)) {
+                        frase += '.';
+                    }
+                }
+
+                // Mayúscula inicial en cada oración
+                frase = frase.charAt(0).toUpperCase() + frase.slice(1);
+                resultadoFrases.push(frase);
+            }
+
+            return resultadoFrases.join(' ');
+        }
         
         async function analizarTexto() {
             let textoCrudo = document.getElementById('input-texto').value.trim();
             if (!textoCrudo) return alert("Por favor, ingresa un texto para analizar.");
 
-            // Normalizamos modismos de chat automáticamente antes del análisis
             let texto = normalizarModismosTexto(textoCrudo);
 
             document.getElementById('stats-texto').style.display = 'flex';
@@ -406,15 +147,13 @@
             let estilo = document.getElementById('sel-estilo-ia').value;
             if (!textoCrudo) return alert("Por favor, ingresa un texto.");
 
-            // Aplicar limpieza de modismos de chat (ej: nc -> no sé, q -> que)
             let texto = normalizarModismosTexto(textoCrudo);
-
             let output = document.getElementById('output-texto');
             document.getElementById('seccion-resultado-texto').style.display = 'block';
-            output.value = "Procesando correcciones con contexto...";
+            output.value = "Procesando correcciones con contexto y puntuación...";
 
             if (estilo === 'auto') {
-                document.getElementById('lbl-titulo-resultado').innerText = "✨ Arreglado Automáticamente (Modismos, ortografía y puntuación):";
+                document.getElementById('lbl-titulo-resultado').innerText = "✨ Arreglado Automáticamente (Modismos, preguntas y puntuación):";
                 try {
                     let response = await fetch('https://api.languagetool.org/v2/check', {
                         method: 'POST',
@@ -433,24 +172,16 @@
                         }
                     }
 
-                    textoCorregido = textoCorregido.charAt(0).toUpperCase() + textoCorregido.slice(1);
-                    if (!/[.!?]$/.test(textoCorregido.trim())) textoCorregido += '.';
-                    
+                    // Aplicar el corrector estructural de preguntas y puntuación final
+                    textoCorregido = corregirPuntuacionYEstructura(textoCorregido);
                     output.value = textoCorregido;
                 } catch (e) {
-                    output.value = "Hubo un error al procesar las correcciones automáticamente.";
+                    output.value = corregirPuntuacionYEstructura(texto);
                 }
             } 
             else if (estilo === 'fluido') {
                 document.getElementById('lbl-titulo-resultado').innerText = "Mejora de Fluidez y Puntuación:";
-                let procesado = texto.replace(/\s+/g, ' ') 
-                                     .replace(/\s+([?,.!;:])/g, '$1') 
-                                     .replace(/([?,.!;:])(?=[^\s])/g, '$1 ') 
-                                     .trim();
-                
-                procesado = procesado.replace(/(^\s*|[.!?]\s+)([a-záéíóúñ])/g, (m, p1, p2) => p1 + p2.toUpperCase());
-                
-                if (!/[.!?]$/.test(procesado)) procesado += '.';
+                let procesado = corregirPuntuacionYEstructura(texto);
                 output.value = procesado;
             } 
             else if (estilo === 'formal') {
@@ -461,272 +192,7 @@
                                      .replace(/\b(ok|vale|dale)\b/gi, 'de acuerdo')
                                      .replace(/\b(yo creo que|me parece que)\b/gi, 'considero que');
                 
-                procesado = procesado.charAt(0).toUpperCase() + procesado.slice(1);
-                if (!/[.!?]$/.test(procesado)) procesado += '.';
+                procesado = corregirPuntuacionYEstructura(procesado);
                 output.value = procesado;
             }
         }
-
-        async function traducirTexto() {
-            let texto = document.getElementById('input-texto').value.trim();
-            let targetLang = document.getElementById('sel-idioma-traduccion').value;
-            if (!texto) return alert("Por favor, ingresa un texto.");
-
-            document.getElementById('lbl-titulo-resultado').innerText = "Traducción completada:";
-            let output = document.getElementById('output-texto');
-            document.getElementById('seccion-resultado-texto').style.display = 'block';
-            output.value = "Traduciendo...";
-
-            try {
-                let res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(texto)}`);
-                let data = await res.json();
-                output.value = data[0].map(item => item[0]).join('');
-            } catch (e) {
-                output.value = "Error al traducir.";
-            }
-        }
-
-        function copiarTextoResultado() {
-            let txt = document.getElementById('output-texto');
-            txt.select();
-            document.execCommand('copy');
-            alert("¡Texto copiado!");
-        }
-
-        function reemplazarOriginal() {
-            let txtResult = document.getElementById('output-texto').value;
-            document.getElementById('input-texto').value = txtResult;
-            document.getElementById('seccion-resultado-texto').style.display = 'none';
-        }
-
-        // =========================================================================
-        // MÓDULO DE EDICIÓN DE IMAGEN Y BORRADOR (Canvas Completo)
-        // =========================================================================
-        let canvas = document.getElementById('canvas-editor');
-        let ctx = canvas.getContext('2d', { willReadFrequently: true });
-        let overlay = document.getElementById('canvas-overlay');
-        let ctxOverlay = overlay.getContext('2d');
-        let canvasOriginal = document.createElement('canvas');
-        let ctxOriginal = canvasOriginal.getContext('2d', { willReadFrequently: true });
-        let modoActual = 'borrar', isDrawing = false, strokeTargetColor = null, historialEstados = [];
-
-        function setModo(modo) { 
-            modoActual = modo; 
-            document.getElementById('btn-modo-borrar').classList.toggle('active', modo === 'borrar'); 
-            document.getElementById('btn-modo-restaurar').classList.toggle('active', modo === 'restaurar'); 
-        }
-
-        function guardarEstadoHistorial() { 
-            if (canvas.width === 0) return; 
-            historialEstados.push(ctx.getImageData(0, 0, canvas.width, canvas.height)); 
-            if (historialEstados.length > 25) historialEstados.shift(); 
-            document.getElementById('btn-undo').disabled = historialEstados.length <= 1; 
-        }
-
-        function deshacerAccion() { 
-            if (historialEstados.length <= 1) return; 
-            historialEstados.pop(); 
-            ctx.putImageData(historialEstados[historialEstados.length - 1], 0, 0); 
-            document.getElementById('btn-undo').disabled = historialEstados.length <= 1; 
-        }
-        
-        function prepararImagen(event) {
-            let file = event.target.files[0];
-            if (!file) return;
-            updateLabel('borrador');
-            let img = new Image();
-            let reader = new FileReader();
-            reader.onload = e => {
-                img.onload = () => {
-                    let scale = img.width > (window.innerWidth > 700 ? 640 : window.innerWidth - 50) ? (window.innerWidth > 700 ? 640 : window.innerWidth - 50) / img.width : 1;
-                    canvas.width = overlay.width = canvasOriginal.width = Math.floor(img.width * scale);
-                    canvas.height = overlay.height = canvasOriginal.height = Math.floor(img.height * scale);
-                    ctxOriginal.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    historialEstados = []; 
-                    guardarEstadoHistorial(); 
-                    document.getElementById('herramientas-borrador').style.display = 'block';
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function eliminarFondoAuto() {
-            let w = canvas.width, h = canvas.height, imgData = ctx.getImageData(0, 0, w, h), d = imgData.data;
-            let bg = {r: d[0], g: d[1], b: d[2]};
-            for (let i = 0; i < d.length; i += 4) {
-                if (Math.sqrt((d[i]-bg.r)**2 + (d[i+1]-bg.g)**2 + (d[i+2]-bg.b)**2) < 55) {
-                    d[i+3] = 0;
-                }
-            }
-            ctx.putImageData(imgData, 0, 0); 
-            guardarEstadoHistorial();
-        }
-
-        function getPointerPos(e) {
-            let rect = canvas.getBoundingClientRect();
-            let cX = e.touches ? e.touches[0].clientX : e.clientX;
-            let cY = e.touches ? e.touches[0].clientY : e.clientY;
-            return { 
-                x: Math.floor((cX - rect.left) * (canvas.width / rect.width)), 
-                y: Math.floor((cY - rect.top) * (canvas.height / rect.height)) 
-            };
-        }
-        
-        function draw(e) {
-            let pos = getPointerPos(e);
-            if (isDrawing) {
-                e.preventDefault();
-                let r = parseInt(document.getElementById('brush-size').value);
-                let tol = parseInt(document.getElementById('tolerance-size').value);
-                let magico = document.getElementById('toggle-pincel-magico').checked;
-                let cur = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                let orig = canvasOriginal.getImageData(0, 0, canvas.width, canvas.height);
-                
-                for(let y = Math.max(0, pos.y - r); y <= Math.min(canvas.height - 1, pos.y + r); y++) {
-                    for(let x = Math.max(0, pos.x - r); x <= Math.min(canvas.width - 1, pos.x + r); x++) {
-                        if((x - pos.x)**2 + (y - pos.y)**2 <= r**2) {
-                            let idx = (y * canvas.width + x) * 4;
-                            if (magico && strokeTargetColor) {
-                                let cR = modoActual === 'borrar' ? cur.data[idx] : orig.data[idx];
-                                let cG = modoActual === 'borrar' ? cur.data[idx+1] : orig.data[idx+1];
-                                let cB = modoActual === 'borrar' ? cur.data[idx+2] : orig.data[idx+2];
-                                if (Math.sqrt((cR - strokeTargetColor.r)**2 + (cG - strokeTargetColor.g)**2 + (cB - strokeTargetColor.b)**2) > tol) continue;
-                            }
-                            if (modoActual === 'borrar') {
-                                cur.data[idx+3] = 0;
-                            } else { 
-                                cur.data[idx] = orig.data[idx]; 
-                                cur.data[idx+1] = orig.data[idx+1]; 
-                                cur.data[idx+2] = orig.data[idx+2]; 
-                                cur.data[idx+3] = orig.data[idx+3]; 
-                            }
-                        }
-                    }
-                }
-                ctx.putImageData(cur, 0, 0);
-            }
-            ctxOverlay.clearRect(0, 0, overlay.width, overlay.height); 
-            ctxOverlay.beginPath(); 
-            ctxOverlay.arc(pos.x, pos.y, document.getElementById('brush-size').value, 0, Math.PI * 2); 
-            ctxOverlay.fillStyle = 'rgba(239,68,68,0.3)'; 
-            ctxOverlay.fill();
-        }
-
-        canvas.addEventListener('mousedown', e => { 
-            isDrawing = true; 
-            let p = getPointerPos(e); 
-            let s = modoActual === 'borrar' ? ctx.getImageData(p.x, p.y, 1, 1).data : ctxOriginal.getImageData(p.x, p.y, 1, 1).data; 
-            strokeTargetColor = {r: s[0], g: s[1], b: s[2]}; 
-            draw(e); 
-        });
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', () => { 
-            if(isDrawing){ 
-                isDrawing = false; 
-                ctxOverlay.clearRect(0, 0, overlay.width, overlay.height); 
-                guardarEstadoHistorial(); 
-            }
-        });
-        canvas.addEventListener('touchstart', e => { 
-            isDrawing = true; 
-            let p = getPointerPos(e); 
-            let s = modoActual === 'borrar' ? ctx.getImageData(p.x, p.y, 1, 1).data : ctxOriginal.getImageData(p.x, p.y, 1, 1).data; 
-            strokeTargetColor = {r: s[0], g: s[1], b: s[2]}; 
-            draw(e); 
-        }, {passive: false});
-        canvas.addEventListener('touchmove', draw, {passive: false});
-        canvas.addEventListener('touchend', () => { 
-            if(isDrawing){ 
-                isDrawing = false; 
-                ctxOverlay.clearRect(0, 0, overlay.width, overlay.height); 
-                guardarEstadoHistorial(); 
-            }
-        });
-        
-        function guardarResultadoFinal() { 
-            canvas.toBlob(b => prepararDescarga(b, 'png', '¡Imagen lista!'), 'image/png'); 
-        }
-
-        // =========================================================================
-        // MÓDULO DE PDF, RECORTE Y COMPRESIÓN
-        // =========================================================================
-        function cambiarModoPdf() { 
-            let m = document.getElementById('modo-pdf').value; 
-            document.getElementById('seccion-unir').style.display = m === 'unir' ? 'block' : 'none'; 
-            document.getElementById('seccion-dividir').style.display = m === 'dividir' ? 'block' : 'none'; 
-        }
-
-        function updateLabelPdf(t) { 
-            let i = document.getElementById(`input-${t}-pdf`);
-            let l = document.getElementById(`label-${t}-pdf`); 
-            if(i.files.length) { 
-                l.innerText = t === 'unir' ? `✅ ${i.files.length} archivos` : `✅ ${i.files[0].name}`; 
-                l.style.borderColor = l.style.color = "#34d399"; 
-            } 
-        }
-
-        async function procesarUnirPdf() {
-            let input = document.getElementById('input-unir-pdf'); 
-            if (input.files.length < 2) return alert("Selecciona al menos 2 PDFs.");
-            try { 
-                const merged = await PDFLib.PDFDocument.create(); 
-                for (let f of input.files) { 
-                    let doc = await PDFLib.PDFDocument.load(await f.arrayBuffer()); 
-                    (await merged.copyPages(doc, doc.getPageIndices())).forEach(p => merged.addPage(p)); 
-                } 
-                prepararDescarga(new Blob([await merged.save()], { type: 'application/pdf' }), 'pdf', '¡PDFs unidos con éxito!'); 
-            } catch (e) { 
-                alert("Error al unir los archivos PDF."); 
-            }
-        }
-
-        async function procesarDividirPdf() {
-            let i = document.getElementById('input-dividir-pdf'); 
-            if (!i.files[0]) return alert("Selecciona un PDF."); 
-            let n = parseInt(document.getElementById('input-pagina-pdf').value) - 1;
-            try { 
-                let doc = await PDFLib.PDFDocument.load(await i.files[0].arrayBuffer()); 
-                const sub = await PDFLib.PDFDocument.create(); 
-                let [p] = await sub.copyPages(doc, [n]); 
-                sub.addPage(p); 
-                prepararDescarga(new Blob([await sub.save()], { type: 'application/pdf' }), 'pdf', '¡Página extraída con éxito!'); 
-            } catch (e) { 
-                alert("Error al extraer la página."); 
-            }
-        }
-
-        async function procesarCompresion() { 
-            let i = document.getElementById('input-comprimir').files[0]; 
-            if(i) prepararDescarga(await imageCompression(i, { maxSizeMB: 0.8 }), i.name.split('.').pop(), '¡Imagen comprimida con éxito!'); 
-        }
-
-        async function procesarConversion() { 
-            let i = document.getElementById('input-convertir').files[0];
-            let f = document.getElementById('formato-salida').value; 
-            if(i) prepararDescarga(await imageCompression(i, { maxSizeMB: 5, fileType: f }), f.split('/')[1], '¡Formato convertido con éxito!'); 
-        }
-        
-        let cropper = null;
-        function prepararRecortar(e) { 
-            updateLabel('recortar'); 
-            let f = e.target.files[0]; 
-            if(!f) return; 
-            let r = new FileReader(); 
-            r.onload = ev => { 
-                let i = document.getElementById('cropper-image'); 
-                i.src = ev.target.result; 
-                document.getElementById('cropper-container').style.display = document.getElementById('btn-recortar').style.display = 'block'; 
-                if(cropper) cropper.destroy(); 
-                cropper = new Cropper(i, { viewMode: 2 }); 
-            }; 
-            r.readAsDataURL(f); 
-        }
-
-        function procesarRecorte() { 
-            if(cropper) cropper.getCroppedCanvas().toBlob(b => prepararDescarga(b, 'png', '¡Imagen recortada con éxito!'), 'image/png'); 
-        }
-    </script>
-</body>
-</html>
