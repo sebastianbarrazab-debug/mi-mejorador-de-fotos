@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iLoveFotos - Herramientas de Imagen y PDF Online Gratis</title>
+    <title>iLoveFotos - Herramientas de Imagen y PDF Online</title>
     
     <!-- LIBRERÍAS EXTERNAS -->
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
@@ -26,7 +26,7 @@
         .tab-content { display: none; width: 100%; max-width: 550px; }
         .tab-content.active { display: block; }
         
-        .card { background: #111827; padding: 40px 30px; border-radius: 16px; border: 1px solid #1f2937; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); text-align: center; margin-bottom: 20px; }
+        .card { background: #111827; padding: 40px 30px; border-radius: 16px; border: 1px solid #1f2937; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); text-align: center; margin-bottom: 20px; position: relative; }
         h2 { margin-top: 0; color: #f8fafc; font-size: 24px; }
         p { color: #94a3b8; font-size: 14px; margin-bottom: 25px; }
         
@@ -44,9 +44,24 @@
         
         .img-container { width: 100%; max-height: 400px; margin-bottom: 20px; display: none; background: #000; border-radius: 8px; overflow: hidden; }
         .img-container img { max-width: 100%; display: block; }
+
+        /* Cursor rojo para el borrador manual */
+        #brush-cursor {
+            position: fixed;
+            border: 2px solid #ef4444; /* Borde rojo brillante */
+            background-color: rgba(239, 68, 68, 0.4); /* Fondo rojo semitransparente */
+            border-radius: 50%;
+            pointer-events: none; /* Permite hacer clic a través del círculo */
+            transform: translate(-50%, -50%);
+            display: none;
+            z-index: 9999;
+        }
     </style>
 </head>
 <body>
+
+    <!-- El coso rojo que seguirá al mouse -->
+    <div id="brush-cursor"></div>
 
     <nav class="navbar">
         <a href="#" class="logo">iLove<span>Fotos</span></a>
@@ -64,8 +79,8 @@
         <!-- BORRADOR INTELIGENTE -->
         <div id="tab-borrador" class="tab-content active">
             <div class="card">
-                <h2>Borrador Inteligente de Fondo</h2>
-                <p>Haz clic en el fondo para detectarlo y borrarlo mágicamente, o usa el pincel para los detalles.</p>
+                <h2>Borrador de Fondo</h2>
+                <p>Usa la varita para borrar fondos de colores similares, o el pincel manual para ajustes finos.</p>
                 <label for="input-borrador" class="file-label" id="label-borrador">📁 Seleccionar foto</label>
                 <input type="file" id="input-borrador" accept="image/*" onchange="prepararBorrador(event)">
                 
@@ -81,17 +96,17 @@
                     </div>
 
                     <div id="opciones-magic">
-                        <p style="margin: 5px 0; color: #94a3b8; font-size: 13px; text-align: left;">Tolerancia Mágica (Si borra mucho, bájala):</p>
+                        <p style="margin: 5px 0; color: #94a3b8; font-size: 13px; text-align: left;">Tolerancia Mágica:</p>
                         <input type="range" id="magic-tolerance" min="0" max="150" value="40" style="width: 100%; margin-bottom: 15px;">
                     </div>
 
                     <div id="opciones-brush" style="display:none;">
                         <p style="margin: 5px 0; color: #94a3b8; font-size: 13px; text-align: left;">Tamaño del Pincel Manual:</p>
-                        <input type="range" id="brush-size" min="5" max="100" value="30" style="width: 100%; margin-bottom: 15px;">
+                        <input type="range" id="brush-size" min="5" max="150" value="30" style="width: 100%; margin-bottom: 15px;" oninput="updateCursorSize()">
                     </div>
                     
-                    <div style="position: relative; background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGlpSUGIg3m5eVlYGIYNYBhmIQBvYEPAwAwLwH9rS1X+QAAAABJRU5ErkJggg==') repeat; border-radius: 8px; border: 1px solid #374151; overflow: hidden; display: flex; justify-content: center; align-items: center; background-color: #fff;">
-                        <canvas id="canvas-borrador" style="cursor: crosshair; max-width: 100%; touch-action: none;"></canvas>
+                    <div id="canvas-wrapper" style="position: relative; background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGlpSUGIg3m5eVlYGIYNYBhmIQBvYEPAwAwLwH9rS1X+QAAAABJRU5ErkJggg==') repeat; border-radius: 8px; border: 1px solid #374151; overflow: hidden; display: flex; justify-content: center; align-items: center; background-color: #fff;">
+                        <canvas id="canvas-borrador" style="cursor: crosshair; max-width: 100%; touch-action: none; display: block;"></canvas>
                     </div>
                     
                     <button class="btn-action" style="margin-top: 20px;" onclick="guardarFondoBorrado()">📥 Descargar PNG sin fondo</button>
@@ -212,6 +227,7 @@
         // --- LÓGICA DEL BORRADOR MÁGICO Y MANUAL ---
         let canvasBorrador = document.getElementById('canvas-borrador');
         let ctxBorrador = canvasBorrador.getContext('2d', { willReadFrequently: true });
+        let brushCursor = document.getElementById('brush-cursor');
         let isDrawing = false;
         let currentMode = 'magic';
 
@@ -220,9 +236,13 @@
             if (currentMode === 'magic') {
                 document.getElementById('opciones-magic').style.display = 'block';
                 document.getElementById('opciones-brush').style.display = 'none';
+                brushCursor.style.display = 'none'; // Ocultar coso rojo en varita
+                canvasBorrador.style.cursor = 'crosshair';
             } else {
                 document.getElementById('opciones-magic').style.display = 'none';
                 document.getElementById('opciones-brush').style.display = 'block';
+                canvasBorrador.style.cursor = 'none'; // Ocultar cursor normal para usar el coso rojo
+                updateCursorSize();
             }
         }
 
@@ -253,6 +273,42 @@
             reader.readAsDataURL(file);
         }
 
+        // --- SISTEMA DEL COSO ROJO (CURSOR MANUAL) ---
+        function updateCursorSize() {
+            if (currentMode !== 'brush') return;
+            let brushSize = parseInt(document.getElementById('brush-size').value);
+            // Ajustar visualmente el tamaño del cursor al escalado CSS del canvas
+            let rect = canvasBorrador.getBoundingClientRect();
+            let scaleRatio = rect.width / canvasBorrador.width;
+            let visualSize = brushSize * scaleRatio;
+            
+            brushCursor.style.width = visualSize + 'px';
+            brushCursor.style.height = visualSize + 'px';
+        }
+
+        canvasBorrador.addEventListener('mousemove', function(e) {
+            if (currentMode === 'brush') {
+                brushCursor.style.display = 'block';
+                brushCursor.style.left = e.clientX + 'px';
+                brushCursor.style.top = e.clientY + 'px';
+            }
+            draw(e);
+        });
+
+        canvasBorrador.addEventListener('mouseenter', function() {
+            if (currentMode === 'brush') brushCursor.style.display = 'block';
+        });
+
+        canvasBorrador.addEventListener('mouseleave', function() {
+            brushCursor.style.display = 'none';
+            stopDrawing();
+        });
+
+        // Ocultar al hacer scroll por si acaso
+        window.addEventListener('scroll', function() {
+            brushCursor.style.display = 'none';
+        });
+
         function getPointerPos(e) {
             let rect = canvasBorrador.getBoundingClientRect();
             let clientX = e.clientX || (e.touches && e.touches[0].clientX);
@@ -271,7 +327,7 @@
             magicWand(pos.x, pos.y, tolerance);
         });
 
-        // Manejadores del Pincel
+        // Manejadores del Pincel Manual
         function startDrawing(e) {
             if (currentMode !== 'brush') return;
             isDrawing = true;
@@ -286,11 +342,11 @@
         
         function draw(e) {
             if (!isDrawing || currentMode !== 'brush') return;
-            e.preventDefault(); // Previene el scroll en móviles al dibujar
+            e.preventDefault(); 
             let pos = getPointerPos(e);
             let brushSize = document.getElementById('brush-size').value;
 
-            ctxBorrador.globalCompositeOperation = "destination-out";
+            ctxBorrador.globalCompositeOperation = "destination-out"; // Borra haciendo transparente
             ctxBorrador.lineWidth = brushSize;
             ctxBorrador.lineCap = "round";
             
@@ -301,13 +357,19 @@
         }
 
         canvasBorrador.addEventListener('mousedown', startDrawing);
-        canvasBorrador.addEventListener('mousemove', draw);
         canvasBorrador.addEventListener('mouseup', stopDrawing);
-        canvasBorrador.addEventListener('mouseleave', stopDrawing);
-        canvasBorrador.addEventListener('touchstart', startDrawing, {passive: false});
+        
+        // Touch events para móviles
+        canvasBorrador.addEventListener('touchstart', function(e) {
+            if(currentMode === 'brush') {
+                brushCursor.style.display = 'none'; // En móvil mejor ocultar el cursor flotante
+            }
+            startDrawing(e);
+        }, {passive: false});
         canvasBorrador.addEventListener('touchmove', draw, {passive: false});
         canvasBorrador.addEventListener('touchend', stopDrawing);
 
+        // Lógica Matemática de la Varita (Flood Fill)
         function magicWand(startX, startY, tolerance) {
             let width = canvasBorrador.width;
             let height = canvasBorrador.height;
@@ -320,7 +382,7 @@
             let targetB = data[startPos * 4 + 2];
             let targetA = data[startPos * 4 + 3];
 
-            if (targetA === 0) return;
+            if (targetA === 0) return; // Ya es transparente
 
             let stack = [startPos];
             let visited = new Uint8Array(width * height);
@@ -331,7 +393,7 @@
                 let x = current % width;
                 let y = Math.floor(current / width);
 
-                data[current * 4 + 3] = 0; // Transparencia pura
+                data[current * 4 + 3] = 0; // Vuelve el pixel transparente
 
                 let neighbors = [
                     current - width, 
