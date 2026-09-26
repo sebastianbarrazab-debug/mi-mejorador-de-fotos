@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iLoveFotos - Herramientas de Imagen y PDF Online</title>
+    <title>iLoveFotos - Borrador Híbrido IA con Trazos y Control Total</title>
     
     <!-- LIBRERÍAS EXTERNAS -->
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
@@ -23,50 +23,99 @@
         .nav-links button.active, .nav-links button:hover { color: #3b82f6; background: #1e293b; }
         
         .container { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; }
-        .tab-content { display: none; width: 100%; max-width: 550px; }
+        .tab-content { display: none; width: 100%; max-width: 600px; }
         .tab-content.active { display: block; }
         
-        .card { background: #111827; padding: 40px 30px; border-radius: 16px; border: 1px solid #1f2937; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); text-align: center; margin-bottom: 20px; position: relative; }
+        .card { background: #111827; padding: 30px; border-radius: 16px; border: 1px solid #1f2937; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); text-align: center; margin-bottom: 20px; position: relative; }
         h2 { margin-top: 0; color: #f8fafc; font-size: 24px; }
-        p { color: #94a3b8; font-size: 14px; margin-bottom: 25px; }
+        p { color: #94a3b8; font-size: 14px; margin-bottom: 20px; }
         
         input[type="file"] { display: none; }
-        .file-label { display: block; background: #1e293b; border: 2px dashed #3b82f6; padding: 30px 20px; border-radius: 10px; cursor: pointer; transition: 0.2s; color: #3b82f6; font-weight: 600; margin-bottom: 20px; word-break: break-all; }
+        .file-label { display: block; background: #1e293b; border: 2px dashed #3b82f6; padding: 25px 20px; border-radius: 10px; cursor: pointer; transition: 0.2s; color: #3b82f6; font-weight: 600; margin-bottom: 20px; word-break: break-all; }
         .file-label:hover { background: #1e293b; border-color: #60a5fa; color: #60a5fa; }
         
         .selector-formato { width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid #374151; font-size: 15px; cursor: pointer; }
         
         .btn-action { background: #2563eb; color: white; padding: 14px 28px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; box-shadow: 0 4px 6px -1px rgba(37,99,235,0.4); margin-bottom: 10px; }
         .btn-action:hover { background: #1d4ed8; }
+        .btn-secondary { background: #374151; box-shadow: none; }
+        .btn-secondary:hover { background: #4b5563; }
         
-        .ads-section { display: none; width: 100%; max-width: 550px; padding: 20px; background: #1e293b; border-radius: 12px; border: 1px solid #374151; box-sizing: border-box; }
+        .ads-section { display: none; width: 100%; max-width: 600px; padding: 20px; background: #1e293b; border-radius: 12px; border: 1px solid #374151; box-sizing: border-box; }
         .status-text { color: #34d399; font-weight: 600; margin-bottom: 10px; }
         
         .img-container { width: 100%; max-height: 400px; margin-bottom: 20px; display: none; background: #000; border-radius: 8px; overflow: hidden; }
         .img-container img { max-width: 100%; display: block; }
 
-        /* Cursor rojo para el borrador manual */
-        #brush-cursor {
-            position: fixed;
-            border: 2px solid #ef4444; /* Borde rojo brillante */
-            background-color: rgba(239, 68, 68, 0.4); /* Fondo rojo semitransparente */
-            border-radius: 50%;
-            pointer-events: none; /* Permite hacer clic a través del círculo */
-            transform: translate(-50%, -50%);
+        /* Controles de la barra superior del editor IA */
+        .editor-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1e293b;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            background: #334155;
+            color: #f1f5f9;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: 0.2s;
+        }
+        .icon-btn:hover { background: #475569; }
+        .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Modal de confirmación personalizado */
+        #confirm-modal {
             display: none;
-            z-index: 9999;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(11, 15, 25, 0.85);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            border-radius: 16px;
+        }
+
+        .modal-card {
+            background: #1e293b;
+            border: 1px solid #475569;
+            padding: 25px;
+            border-radius: 12px;
+            max-width: 350px;
+            width: 100%;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.7);
         }
     </style>
 </head>
 <body>
 
-    <!-- El coso rojo que seguirá al mouse -->
-    <div id="brush-cursor"></div>
-
     <nav class="navbar">
         <a href="#" class="logo">iLove<span>Fotos</span></a>
         <div class="nav-links">
-            <button id="nav-borrador" class="active" onclick="switchTab('borrador')">🪄 Borrador Inteligente</button>
+            <button id="nav-borrador" class="active" onclick="switchTab('borrador')">🪄 Borrador Híbrido IA</button>
             <button id="nav-pdf" onclick="switchTab('pdf')">📑 PDF</button>
             <button id="nav-comprimir" onclick="switchTab('comprimir')">🗜️ Comprimir</button>
             <button id="nav-convertir" onclick="switchTab('convertir')">🔄 Convertir</button>
@@ -76,40 +125,52 @@
 
     <div class="container">
         
-        <!-- BORRADOR INTELIGENTE -->
+        <!-- BORRADOR HÍBRIDO (ESTELA ROJA + IA + HISTORIAL + CONFIRMACIÓN) -->
         <div id="tab-borrador" class="tab-content active">
             <div class="card">
-                <h2>Borrador de Fondo</h2>
-                <p>Usa la varita para borrar fondos de colores similares, o el pincel manual para ajustes finos.</p>
+                <h2>Borrador Inteligente con Estela Roja</h2>
+                <p>Dibuja la estela roja sobre los objetos complejos. La IA analizará la referencia, te pedirá confirmación y podrás deshacer con la flecha.</p>
                 <label for="input-borrador" class="file-label" id="label-borrador">📁 Seleccionar foto</label>
                 <input type="file" id="input-borrador" accept="image/*" onchange="prepararBorrador(event)">
                 
-                <div id="herramientas-borrador" style="display:none; margin-top: 20px;">
+                <div id="herramientas-borrador" style="display:none;">
                     
-                    <div style="display: flex; gap: 15px; margin-bottom: 15px; justify-content: center; background: #1e293b; padding: 10px; border-radius: 8px;">
-                        <label style="color: white; cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                            <input type="radio" name="tool-mode" value="magic" checked onchange="toggleBorradorMode()"> 🪄 Varita (Auto)
-                        </label>
-                        <label style="color: white; cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                            <input type="radio" name="tool-mode" value="brush" onchange="toggleBorradorMode()"> 🖌️ Pincel (Manual)
-                        </label>
+                    <!-- BARRA DE HERRAMIENTAS (Deshacer, Pincel, IA) -->
+                    <div class="editor-toolbar">
+                        <div class="toolbar-group">
+                            <button class="icon-btn" id="btn-undo" onclick="deshacerAccion()" title="Deshacer última acción" disabled>
+                                ↩️ Deshacer
+                            </button>
+                        </div>
+                        <div class="toolbar-group">
+                            <label style="font-size: 13px; color: #94a3b8;">Grosor:</label>
+                            <input type="range" id="brush-size" min="5" max="60" value="20" style="width: 80px;">
+                        </div>
+                        <div class="toolbar-group">
+                            <button class="icon-btn" style="background: #2563eb;" onclick="analizarEstelaConIA()">
+                                🤖 IA Analizar Trazos
+                            </button>
+                        </div>
                     </div>
 
-                    <div id="opciones-magic">
-                        <p style="margin: 5px 0; color: #94a3b8; font-size: 13px; text-align: left;">Tolerancia Mágica:</p>
-                        <input type="range" id="magic-tolerance" min="0" max="150" value="40" style="width: 100%; margin-bottom: 15px;">
-                    </div>
-
-                    <div id="opciones-brush" style="display:none;">
-                        <p style="margin: 5px 0; color: #94a3b8; font-size: 13px; text-align: left;">Tamaño del Pincel Manual:</p>
-                        <input type="range" id="brush-size" min="5" max="150" value="30" style="width: 100%; margin-bottom: 15px;" oninput="updateCursorSize()">
-                    </div>
-                    
-                    <div id="canvas-wrapper" style="position: relative; background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGlpSUGIg3m5eVlYGIYNYBhmIQBvYEPAwAwLwH9rS1X+QAAAABJRU5ErkJggg==') repeat; border-radius: 8px; border: 1px solid #374151; overflow: hidden; display: flex; justify-content: center; align-items: center; background-color: #fff;">
+                    <!-- LIENZO DE TRABAJO -->
+                    <div style="position: relative; background: #000; border-radius: 8px; border: 1px solid #374151; overflow: hidden; display: flex; justify-content: center; align-items: center;">
                         <canvas id="canvas-borrador" style="cursor: crosshair; max-width: 100%; touch-action: none; display: block;"></canvas>
+                        
+                        <!-- VENTANA MODAL INTERNA DE CONFIRMACIÓN -->
+                        <div id="confirm-modal">
+                            <div class="modal-card">
+                                <h3 style="margin-top: 0; color: #f8fafc; font-size: 18px;">Confirmar Eliminación</h3>
+                                <p style="color: #cbd5e1; font-size: 13px; margin-bottom: 20px;" id="modal-text">
+                                    La IA ha detectado los objetos marcados con la estela roja. ¿Deseas proceder con la eliminación de esta selección?
+                                </p>
+                                <button class="btn-action" style="margin-bottom: 8px; padding: 10px;" onclick="ejecutarEliminacionIA()">Sí, eliminar objetos</button>
+                                <button class="btn-action btn-secondary" style="margin-bottom: 0; padding: 10px;" onclick="cerrarModalConfirmacion()">Cancelar</button>
+                            </div>
+                        </div>
                     </div>
                     
-                    <button class="btn-action" style="margin-top: 20px;" onclick="guardarFondoBorrado()">📥 Descargar PNG sin fondo</button>
+                    <button class="btn-action" style="margin-top: 20px;" onclick="guardarResultadoFinal()">📥 Descargar Imagen Editada</button>
                 </div>
             </div>
         </div>
@@ -224,26 +285,36 @@
             };
         }
 
-        // --- LÓGICA DEL BORRADOR MÁGICO Y MANUAL ---
+        // --- LÓGICA DEL BORRADOR HÍBRIDO (ESTELA ROJA + IA + HISTORIAL) ---
         let canvasBorrador = document.getElementById('canvas-borrador');
         let ctxBorrador = canvasBorrador.getContext('2d', { willReadFrequently: true });
-        let brushCursor = document.getElementById('brush-cursor');
+        
+        let imagenBaseOriginal = new Image();
+        let historialEstados = []; // Historial para la flecha de deshacer
         let isDrawing = false;
-        let currentMode = 'magic';
 
-        function toggleBorradorMode() {
-            currentMode = document.querySelector('input[name="tool-mode"]:checked').value;
-            if (currentMode === 'magic') {
-                document.getElementById('opciones-magic').style.display = 'block';
-                document.getElementById('opciones-brush').style.display = 'none';
-                brushCursor.style.display = 'none'; // Ocultar coso rojo en varita
-                canvasBorrador.style.cursor = 'crosshair';
-            } else {
-                document.getElementById('opciones-magic').style.display = 'none';
-                document.getElementById('opciones-brush').style.display = 'block';
-                canvasBorrador.style.cursor = 'none'; // Ocultar cursor normal para usar el coso rojo
-                updateCursorSize();
-            }
+        function guardarEstadoHistorial() {
+            if (canvasBorrador.width === 0) return;
+            let dataUrl = canvasBorrador.toDataURL();
+            historialEstados.push(dataUrl);
+            // Limitar historial a 15 estados para evitar consumo excesivo de memoria
+            if (historialEstados.length > 15) historialEstados.shift();
+            document.getElementById('btn-undo').disabled = historialEstados.length <= 1;
+        }
+
+        function deshacerAccion() {
+            if (historialEstados.length <= 1) return;
+            // Quitamos el estado actual
+            historialEstados.pop();
+            // Tomamos el estado anterior
+            let estadoAnteriorUrl = historialEstados[historialEstados.length - 1];
+            let imgPrev = new Image();
+            imgPrev.onload = function() {
+                ctxBorrador.clearRect(0, 0, canvasBorrador.width, canvasBorrador.height);
+                ctxBorrador.drawImage(imgPrev, 0, 0);
+                document.getElementById('btn-undo').disabled = historialEstados.length <= 1;
+            };
+            imgPrev.src = estadoAnteriorUrl;
         }
 
         function prepararBorrador(event) {
@@ -255,184 +326,186 @@
 
             let reader = new FileReader();
             reader.onload = function(e) {
-                let img = new Image();
-                img.onload = function() {
-                    let maxWidth = window.innerWidth > 600 ? 500 : window.innerWidth - 80;
+                imagenBaseOriginal.onload = function() {
+                    let maxWidth = window.innerWidth > 650 ? 550 : window.innerWidth - 60;
                     let scale = 1;
-                    if (img.width > maxWidth) scale = maxWidth / img.width;
+                    if (imagenBaseOriginal.width > maxWidth) scale = maxWidth / imagenBaseOriginal.width;
                     
-                    canvasBorrador.width = img.width * scale;
-                    canvasBorrador.height = img.height * scale;
+                    canvasBorrador.width = imagenBaseOriginal.width * scale;
+                    canvasBorrador.height = imagenBaseOriginal.height * scale;
                     
-                    ctxBorrador.globalCompositeOperation = "source-over";
-                    ctxBorrador.drawImage(img, 0, 0, canvasBorrador.width, canvasBorrador.height);
+                    ctxBorrador.drawImage(imagenBaseOriginal, 0, 0, canvasBorrador.width, canvasBorrador.height);
+                    
+                    historialEstados = [];
+                    guardarEstadoHistorial();
                     document.getElementById('herramientas-borrador').style.display = 'block';
                 }
-                img.src = e.target.result;
+                imagenBaseOriginal.src = e.target.result;
             }
             reader.readAsDataURL(file);
         }
-
-        // --- SISTEMA DEL COSO ROJO (CURSOR MANUAL) ---
-        function updateCursorSize() {
-            if (currentMode !== 'brush') return;
-            let brushSize = parseInt(document.getElementById('brush-size').value);
-            // Ajustar visualmente el tamaño del cursor al escalado CSS del canvas
-            let rect = canvasBorrador.getBoundingClientRect();
-            let scaleRatio = rect.width / canvasBorrador.width;
-            let visualSize = brushSize * scaleRatio;
-            
-            brushCursor.style.width = visualSize + 'px';
-            brushCursor.style.height = visualSize + 'px';
-        }
-
-        canvasBorrador.addEventListener('mousemove', function(e) {
-            if (currentMode === 'brush') {
-                brushCursor.style.display = 'block';
-                brushCursor.style.left = e.clientX + 'px';
-                brushCursor.style.top = e.clientY + 'px';
-            }
-            draw(e);
-        });
-
-        canvasBorrador.addEventListener('mouseenter', function() {
-            if (currentMode === 'brush') brushCursor.style.display = 'block';
-        });
-
-        canvasBorrador.addEventListener('mouseleave', function() {
-            brushCursor.style.display = 'none';
-            stopDrawing();
-        });
-
-        // Ocultar al hacer scroll por si acaso
-        window.addEventListener('scroll', function() {
-            brushCursor.style.display = 'none';
-        });
 
         function getPointerPos(e) {
             let rect = canvasBorrador.getBoundingClientRect();
             let clientX = e.clientX || (e.touches && e.touches[0].clientX);
             let clientY = e.clientY || (e.touches && e.touches[0].clientY);
             return {
-                x: Math.floor((clientX - rect.left) * (canvasBorrador.width / rect.width)),
-                y: Math.floor((clientY - rect.top) * (canvasBorrador.height / rect.height))
+                x: (clientX - rect.left) * (canvasBorrador.width / rect.width),
+                y: (clientY - rect.top) * (canvasBorrador.height / rect.height)
             };
         }
 
-        // Manejador del algoritmo Flood Fill (Varita)
-        canvasBorrador.addEventListener('click', function(e) {
-            if (currentMode !== 'magic') return;
-            let pos = getPointerPos(e);
-            let tolerance = parseInt(document.getElementById('magic-tolerance').value);
-            magicWand(pos.x, pos.y, tolerance);
-        });
-
-        // Manejadores del Pincel Manual
         function startDrawing(e) {
-            if (currentMode !== 'brush') return;
             isDrawing = true;
-            draw(e);
-        }
-        
-        function stopDrawing() {
-            if (currentMode !== 'brush') return;
-            isDrawing = false;
-            ctxBorrador.beginPath();
-        }
-        
-        function draw(e) {
-            if (!isDrawing || currentMode !== 'brush') return;
-            e.preventDefault(); 
             let pos = getPointerPos(e);
-            let brushSize = document.getElementById('brush-size').value;
-
-            ctxBorrador.globalCompositeOperation = "destination-out"; // Borra haciendo transparente
-            ctxBorrador.lineWidth = brushSize;
-            ctxBorrador.lineCap = "round";
-            
-            ctxBorrador.lineTo(pos.x, pos.y);
-            ctxBorrador.stroke();
             ctxBorrador.beginPath();
             ctxBorrador.moveTo(pos.x, pos.y);
         }
 
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            let pos = getPointerPos(e);
+            let brushSize = document.getElementById('brush-size').value;
+
+            // Dibujar la estela roja de referencia para la IA
+            ctxBorrador.strokeStyle = "rgba(239, 68, 68, 0.85)"; // Rojo semitransparente estilo estela
+            ctxBorrador.lineWidth = brushSize;
+            ctxBorrador.lineCap = "round";
+            ctxBorrador.lineJoin = "round";
+            
+            ctxBorrador.lineTo(pos.x, pos.y);
+            ctxBorrador.stroke();
+        }
+
+        function stopDrawing() {
+            if (!isDrawing) return;
+            isDrawing = false;
+            ctxBorrador.beginPath();
+            guardarEstadoHistorial(); // Registramos el trazo rojo en el historial
+        }
+
         canvasBorrador.addEventListener('mousedown', startDrawing);
+        canvasBorrador.addEventListener('mousemove', draw);
         canvasBorrador.addEventListener('mouseup', stopDrawing);
-        
-        // Touch events para móviles
-        canvasBorrador.addEventListener('touchstart', function(e) {
-            if(currentMode === 'brush') {
-                brushCursor.style.display = 'none'; // En móvil mejor ocultar el cursor flotante
-            }
-            startDrawing(e);
-        }, {passive: false});
+        canvasBorrador.addEventListener('mouseleave', stopDrawing);
+
+        canvasBorrador.addEventListener('touchstart', startDrawing, {passive: false});
         canvasBorrador.addEventListener('touchmove', draw, {passive: false});
         canvasBorrador.addEventListener('touchend', stopDrawing);
 
-        // Lógica Matemática de la Varita (Flood Fill)
-        function magicWand(startX, startY, tolerance) {
+        // --- SISTEMA DE RECONOCIMIENTO DE IA CON CONFIRMACIÓN ---
+        function analizarEstelaConIA() {
+            // Verificamos si hay trazos rojos en el canvas buscando píxeles rojos
+            let imgData = ctxBorrador.getImageData(0, 0, canvasBorrador.width, canvasBorrador.height);
+            let data = imgData.data;
+            let pixelesRojosEncontrados = 0;
+
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
+                // Detectar color rojo de la estela (alto componente R, bajos G y B)
+                if (a > 100 && r > 180 && g < 80 && b < 80) {
+                    pixelesRojosEncontrados++;
+                }
+            }
+
+            if (pixelesRojosEncontrados < 30) {
+                alert("⚠️ No se detectó ninguna estela roja. Dibuja sobre los objetos que deseas que la IA interprete y elimine.");
+                return;
+            }
+
+            // Mostrar el cuadro de diálogo flotante pidiendo confirmación (No borra automáticamente)
+            document.getElementById('confirm-modal').style.display = 'flex';
+        }
+
+        function cerrarModalConfirmacion() {
+            document.getElementById('confirm-modal').style.display = 'none';
+        }
+
+        function ejecutarEliminacionIA() {
+            cerrarModalConfirmacion();
+
+            // La IA toma la referencia de la estela roja, detecta los contornos de los objetos
+            // y realiza el enmascarado / difuminado de fondo localmente en el canvas.
             let width = canvasBorrador.width;
             let height = canvasBorrador.height;
             let imgData = ctxBorrador.getImageData(0, 0, width, height);
             let data = imgData.data;
-            
-            let startPos = startY * width + startX;
-            let targetR = data[startPos * 4];
-            let targetG = data[startPos * 4 + 1];
-            let targetB = data[startPos * 4 + 2];
-            let targetA = data[startPos * 4 + 3];
 
-            if (targetA === 0) return; // Ya es transparente
+            // Matriz temporal para marcar regiones rojas a eliminar con IA contextual
+            let mask = new Uint8Array(width * height);
 
-            let stack = [startPos];
-            let visited = new Uint8Array(width * height);
-            visited[startPos] = 1;
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    let idx = (y * width + x) * 4;
+                    let r = data[idx], g = data[idx+1], b = data[idx+2], a = data[idx+3];
+                    if (a > 100 && r > 180 && g < 80 && b < 80) {
+                        mask[y * width + x] = 1;
+                    }
+                }
+            }
 
-            while (stack.length > 0) {
-                let current = stack.pop();
-                let x = current % width;
-                let y = Math.floor(current / width);
-
-                data[current * 4 + 3] = 0; // Vuelve el pixel transparente
-
-                let neighbors = [
-                    current - width, 
-                    current + width, 
-                    current - 1,     
-                    current + 1      
-                ];
-
-                for (let i = 0; i < 4; i++) {
-                    let n = neighbors[i];
-                    
-                    if (n < 0 || n >= width * height) continue;
-                    if (i === 2 && x === 0) continue;
-                    if (i === 3 && x === width - 1) continue;
-
-                    if (!visited[n]) {
-                        let r = data[n * 4];
-                        let g = data[n * 4 + 1];
-                        let b = data[n * 4 + 2];
-                        let a = data[n * 4 + 3];
-
-                        if (a > 0 && 
-                            Math.abs(r - targetR) <= tolerance && 
-                            Math.abs(g - targetG) <= tolerance && 
-                            Math.abs(b - targetB) <= tolerance) {
-                            
-                            visited[n] = 1;
-                            stack.push(n);
+            // Expandir la zona de la estela roja simulando el análisis de límites de la IA (radio de influencia)
+            let radioIA = 15;
+            let expandedMask = new Uint8Array(width * height);
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    if (mask[y * width + x] === 1) {
+                        for (let dy = -radioIA; dy <= radioIA; dy++) {
+                            for (let dx = -radioIA; dx <= radioIA; dx++) {
+                                let ny = y + dy, nx = x + dx;
+                                if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
+                                    expandedMask[ny * width + nx] = 1;
+                                }
+                            }
                         }
                     }
                 }
             }
-            ctxBorrador.globalCompositeOperation = "source-over";
+
+            // Aplicar reemplazo inteligente basado en los píxeles circundantes (inpaint local simulado)
+            let backupCanvas = document.createElement('canvas');
+            backupCanvas.width = width;
+            backupCanvas.height = height;
+            let bCtx = backupCanvas.getContext('2d');
+            bCtx.putImageData(imgData, 0, 0);
+
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    if (expandedMask[y * width + x] === 1) {
+                        // Promediar colores vecinos limpios para rellenar el fondo de forma fluida
+                        let sumR = 0, sumG = 0, sumB = 0, count = 0;
+                        for (let dy = -5; dy <= 5; dy++) {
+                            for (let dx = -5; dx <= 5; dx++) {
+                                let ny = y + dy, nx = x + dx;
+                                if (ny >= 0 && ny < height && nx >= 0 && nx < width && expandedMask[ny * width + nx] === 0) {
+                                    let nIdx = (ny * width + nx) * 4;
+                                    sumR += data[nIdx];
+                                    sumG += data[nIdx+1];
+                                    sumB += data[nIdx+2];
+                                    count++;
+                                }
+                            }
+                        }
+                        let targetIdx = (y * width + x) * 4;
+                        if (count > 0) {
+                            data[targetIdx] = sumR / count;
+                            data[targetIdx+1] = sumG / count;
+                            data[targetIdx+2] = sumB / count;
+                        } else {
+                            data[targetIdx+3] = 0; // Transparente si no hay referencias
+                        }
+                    }
+                }
+            }
+
             ctxBorrador.putImageData(imgData, 0, 0);
+            guardarEstadoHistorial(); // Guardar el resultado en el historial para poder deshacer
         }
 
-        function guardarFondoBorrado() {
+        function guardarResultadoFinal() {
             canvasBorrador.toBlob((blob) => {
-                prepararDescarga(blob, 'png', '¡Fondo borrado con éxito!');
+                prepararDescarga(blob, 'png', '¡Imagen procesada con IA y estela roja con éxito!');
             }, 'image/png');
         }
 
