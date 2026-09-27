@@ -3,288 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iLoveTools - Suite de Imagen y Texto</title>
-    
-    <!-- LIBRERÍAS EXTERNAS -->
-    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-
-    <!-- LIBRERÍA DE IA PARA PUNTUACIÓN AUTOMÁTICA (Transformers.js) -->
-    <script type="module">
-        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js';
-        window.transformersPipeline = pipeline;
-    </script>
-
+    <title>Corrector de Puntuación Local</title>
     <style>
-        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; text-align: center; background: #0b0f19; color: #f1f5f9; padding: 0; margin: 0; }
-        .navbar { background: #111827; padding: 15px 30px; display: flex; justify-content: center; align-items: center; border-bottom: 1px solid #1f2937; flex-wrap: wrap; gap: 15px; }
-        .logo { font-size: 22px; font-weight: bold; color: #3b82f6; text-decoration: none; margin-right: auto; }
-        .logo span { color: #f1f5f9; }
-        .nav-links { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-        .nav-links button { background: transparent; color: #9ca3af; border: none; font-size: 14px; cursor: pointer; padding: 8px 14px; border-radius: 6px; font-weight: 500; transition: 0.2s; }
-        .nav-links button.active, .nav-links button:hover { color: #3b82f6; background: #1e293b; }
-        
-        .container { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; }
-        .tab-content { display: none; width: 100%; max-width: 680px; }
-        .tab-content.active { display: block; }
-        
-        .card { background: #111827; padding: 25px; border-radius: 16px; border: 1px solid #1f2937; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); text-align: center; margin-bottom: 20px; position: relative; }
-        h2 { margin-top: 0; color: #f8fafc; font-size: 24px; }
-        p { color: #94a3b8; font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
-        
-        input[type="file"] { display: none; }
-        .file-label { display: block; background: #1e293b; border: 2px dashed #3b82f6; padding: 22px 20px; border-radius: 10px; cursor: pointer; transition: 0.2s; color: #3b82f6; font-weight: 600; margin-bottom: 20px; word-break: break-all; }
-        .file-label:hover { background: #1e293b; border-color: #60a5fa; color: #60a5fa; }
-        
-        .selector-formato { width: 100%; padding: 12px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid #374151; font-size: 15px; cursor: pointer; }
-        
-        .btn-action { background: #2563eb; color: white; padding: 14px 28px; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; box-shadow: 0 4px 6px -1px rgba(37,99,235,0.4); margin-bottom: 10px; }
-        .btn-action:hover { background: #1d4ed8; }
-        .btn-action:disabled { background: #4b5563; cursor: not-allowed; box-shadow: none; }
-        
-        /* ESTILOS DE TEXTO E IMAGEN */
-        .text-editor { width: 100%; height: 220px; background: #1e293b; color: #f1f5f9; border: 1px solid #374151; border-radius: 8px; padding: 15px; font-size: 15px; resize: vertical; box-sizing: border-box; font-family: inherit; line-height: 1.6; }
-        .text-editor:focus { outline: none; border-color: #3b82f6; }
-        .status-bar { display: flex; justify-content: space-between; font-size: 13px; color: #94a3b8; margin: 10px 0 20px 0; }
-        .error-card { background: #1e293b; border-radius: 8px; border-left: 4px solid #3b82f6; padding: 15px; margin-bottom: 12px; text-align: left; }
-        .error-card.grammar { border-left-color: #f59e0b; }
-        .error-card.spell { border-left-color: #ef4444; }
-        .suggestion-btn { background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 13px; cursor: pointer; margin: 6px 6px 0 0; transition: 0.2s; font-weight: 500; }
-        .suggestion-btn:hover { background: #059669; }
-
-        .editor-panel { background: #1e293b; border-radius: 12px; padding: 18px; margin-bottom: 20px; border: 1px solid #374151; display: flex; flex-direction: column; gap: 15px; text-align: left; }
-        .mode-selector { display: flex; gap: 10px; justify-content: center; }
-        .btn-mode { flex: 1; padding: 12px; border: 2px solid #3b82f6; background: transparent; color: #f1f5f9; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
-        .btn-mode.active { background: #2563eb; color: white; }
-        .control-row { display: flex; align-items: center; justify-content: space-between; gap: 15px; font-size: 14px; color: #cbd5e1; }
-        
-        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider-switch { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #475569; transition: .3s; border-radius: 24px; }
-        .slider-switch:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-        input:checked + .slider-switch { background-color: #2563eb; }
-        input:checked + .slider-switch:before { transform: translateX(20px); }
-
-        .canvas-wrapper { position: relative; width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid #374151; display: flex; justify-content: center; align-items: center; background-color: #1a1a1a; background-image: linear-gradient(45deg, #262626 25%, transparent 25%), linear-gradient(-45deg, #262626 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #262626 75%), linear-gradient(-45deg, transparent 75%, #262626 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; }
-        .canvas-stage { position: relative; display: inline-block; max-width: 100%; vertical-align: top; }
-        #canvas-editor { display: block; max-width: 100%; height: auto; cursor: crosshair; touch-action: none; position: relative; z-index: 1; }
-        #canvas-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
-
-        .ads-section { display: none; width: 100%; max-width: 680px; padding: 20px; background: #1e293b; border-radius: 12px; border: 1px solid #374151; box-sizing: border-box; }
-        .status-text { color: #34d399; font-weight: 600; margin-bottom: 10px; }
-        .img-container { width: 100%; max-height: 400px; margin-bottom: 20px; display: none; background: #000; border-radius: 8px; overflow: hidden; }
-        .img-container img { max-width: 100%; display: block; }
+        :root {
+            --bg-color: #f4f4f9;
+            --text-color: #333;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        textarea {
+            width: 100%;
+            height: 180px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+            resize: vertical;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+            width: 100%;
+        }
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+        button:disabled {
+            background-color: #94a3b8;
+            cursor: not-allowed;
+        }
+        #estado {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #64748b;
+            text-align: center;
+        }
+        .contadores {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            font-size: 14px;
+            color: #64748b;
+            margin-top: -10px;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
 
-    <nav class="navbar">
-        <a href="#" class="logo">iLove<span>Tools</span></a>
-        <div class="nav-links">
-            <button id="nav-texto" class="active" onclick="switchTab('texto')">📝 Texto y Traducción</button>
-            <button id="nav-borrador" onclick="switchTab('borrador')">✂️ Borrar Fondo</button>
-            <button id="nav-pdf" onclick="switchTab('pdf')">📑 PDF</button>
-            <button id="nav-comprimir" onclick="switchTab('comprimir')">🗜️ Comprimir</button>
-            <button id="nav-convertir" onclick="switchTab('convertir')">🔄 Convertir</button>
-            <button id="nav-recortar" onclick="switchTab('recortar')">✂️ Recortar</button>
-        </div>
-    </nav>
-
-    <div class="container">
-        
-        <!-- PESTAÑA 1: HERRAMIENTAS DE TEXTO Y TRADUCCIÓN -->
-        <div id="tab-texto" class="tab-content active">
-            <div class="card">
-                <h2>Corrector Ortográfico y Traductor IA</h2>
-                <p>Analiza sintaxis, gramática y traduce automáticamente reconociendo el idioma de origen.</p>
-                
-                <textarea id="input-texto" class="text-editor" placeholder="Escribe o pega tu texto aquí..." oninput="actualizarContadores()"></textarea>
-                
-                <div class="status-bar">
-                    <span id="contador-palabras">Palabras: 0</span>
-                    <span id="contador-caracteres">Caracteres: 0</span>
-                    <span id="idioma-detectado">Idioma: Auto-Detección</span>
-                </div>
-
-                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-                    <button id="btn-analizar" class="btn-action" style="margin-bottom: 0; flex: 2;" onclick="autocompletarSignosYAnalizar()">✨ Auto-Puntuar y Revisar</button>
-                    
-                    <select id="target-lang" class="selector-formato" style="margin-bottom: 0; flex: 1; min-width: 120px;">
-                        <option value="es">Al Español</option>
-                        <option value="en">Al Inglés</option>
-                        <option value="fr">Al Francés</option>
-                        <option value="pt">Al Portugués</option>
-                    </select>
-                    <button id="btn-traducir" class="btn-action" style="margin-bottom: 0; flex: 1; background: #059669;" onclick="traducirTexto()">🌐 Traducir</button>
-                </div>
-
-                <div id="contenedor-errores" style="display: none; text-align: left; margin-top: 20px; border-top: 1px solid #374151; padding-top: 20px;">
-                    <h3 style="margin-top: 0; color: white; font-size: 16px;">
-                        Resultados <span id="badge-errores" style="background: #ef4444; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 10px;">0</span>
-                    </h3>
-                    <div id="lista-errores"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- PESTAÑA 2: BORRADOR Y ELIMINADOR DE FONDO -->
-        <div id="tab-borrador" class="tab-content">
-            <div class="card">
-                <h2>Eliminador de Fondo y Pincel Inteligente</h2>
-                <p>Haz clic sobre el color que deseas borrar. El pincel fijará ese tono de referencia sin borrar colores diferentes.</p>
-                
-                <label for="input-borrador" class="file-label" id="label-borrador">📁 Seleccionar foto</label>
-                <input type="file" id="input-borrador" accept="image/*" onchange="prepararImagen(event)">
-                
-                <div id="herramientas-borrador" style="display:none;">
-                    <button class="btn-action" style="background: #059669; margin-bottom: 15px;" onclick="eliminarFondoAuto()">
-                        🪄 Eliminar Fondo Automáticamente (IA)
-                    </button>
-
-                    <div class="editor-panel">
-                        <div class="mode-selector">
-                            <button id="btn-modo-borrar" class="btn-mode active" onclick="setModo('borrar')">⊖ Borrar</button>
-                            <button id="btn-modo-restaurar" class="btn-mode" onclick="setModo('restaurar')">⊕ Restaurar</button>
-                        </div>
-                        <div class="control-row">
-                            <label for="brush-size">Tamaño del pincel:</label>
-                            <input type="range" id="brush-size" min="5" max="100" value="25" style="width: 50%;">
-                        </div>
-                        <div class="control-row">
-                            <label for="tolerance-size">Tolerancia de color:</label>
-                            <input type="range" id="tolerance-size" min="10" max="120" value="45" style="width: 50%;">
-                        </div>
-                        <div class="control-row">
-                            <span>🪄 Pincel Mágico (Fija color al hacer clic)</span>
-                            <label class="switch">
-                                <input type="checkbox" id="toggle-pincel-magico" checked>
-                                <span class="slider-switch"></span>
-                            </label>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
-                            <button class="btn-mode" style="padding: 6px 12px; font-size: 13px; border-color: #475569;" id="btn-undo" onclick="deshacerAccion()" disabled>
-                                ↩️ Deshacer
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="canvas-wrapper" id="canvas-container">
-                        <div class="canvas-stage">
-                            <canvas id="canvas-editor"></canvas>
-                            <canvas id="canvas-overlay"></canvas>
-                        </div>
-                    </div>
-                    <button class="btn-action" style="margin-top: 20px;" onclick="guardarResultadoFinal()">📥 Descargar PNG Transparente</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- HERRAMIENTAS SECUNDARIAS (PDF, COMPRIMIR, CONVERTIR, RECORTAR) -->
-        <div id="tab-pdf" class="tab-content">
-            <div class="card">
-                <h2>Unir y Dividir PDF</h2>
-                <select id="modo-pdf" class="selector-formato" style="margin-bottom: 20px;" onchange="cambiarModoPdf()">
-                    <option value="unir">Unir varios archivos PDF</option>
-                    <option value="dividir">Extraer una página de un PDF</option>
-                </select>
-
-                <div id="seccion-unir">
-                    <label for="input-unir-pdf" class="file-label" id="label-unir-pdf">📁 Seleccionar PDFs</label>
-                    <input type="file" id="input-unir-pdf" accept="application/pdf" multiple onchange="updateLabelPdf('unir')">
-                    <button class="btn-action" onclick="procesarUnirPdf()">Unir PDFs Ahora</button>
-                </div>
-
-                <div id="seccion-dividir" style="display: none;">
-                    <label for="input-dividir-pdf" class="file-label" id="label-dividir-pdf">📁 Seleccionar PDF</label>
-                    <input type="file" id="input-dividir-pdf" accept="application/pdf" onchange="updateLabelPdf('dividir')">
-                    <input type="number" id="input-pagina-pdf" value="1" min="1" style="width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid #374151; box-sizing: border-box;">
-                    <button class="btn-action" onclick="procesarDividirPdf()">Extraer Página Ahora</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="tab-comprimir" class="tab-content">
-            <div class="card">
-                <h2>Comprimir Imagen</h2>
-                <label for="input-comprimir" class="file-label" id="label-comprimir">📁 Seleccionar foto</label>
-                <input type="file" id="input-comprimir" accept="image/jpeg, image/png, image/webp" onchange="updateLabel('comprimir')">
-                <button class="btn-action" onclick="procesarCompresion()">Comprimir Ahora</button>
-            </div>
-        </div>
-
-        <div id="tab-convertir" class="tab-content">
-            <div class="card">
-                <h2>Convertir Formato</h2>
-                <select id="formato-salida" class="selector-formato" style="margin-bottom: 20px;">
-                    <option value="image/png">Convertir a PNG</option>
-                    <option value="image/jpeg">Convertir a JPG</option>
-                    <option value="image/webp">Convertir a WebP</option>
-                </select>
-                <label for="input-convertir" class="file-label" id="label-convertir">📁 Seleccionar foto</label>
-                <input type="file" id="input-convertir" accept="image/*" onchange="updateLabel('convertir')">
-                <button class="btn-action" onclick="procesarConversion()">Convertir Ahora</button>
-            </div>
-        </div>
-
-        <div id="tab-recortar" class="tab-content">
-            <div class="card">
-                <h2>Recortar Imagen</h2>
-                <label for="input-recortar" class="file-label" id="label-recortar">📁 Seleccionar foto</label>
-                <input type="file" id="input-recortar" accept="image/*" onchange="prepararRecortar(event)">
-                <div class="img-container" id="cropper-container">
-                    <img id="cropper-image" src="">
-                </div>
-                <button class="btn-action" id="btn-recortar" style="display:none;" onclick="procesarRecorte()">Recortar y Descargar</button>
-            </div>
-        </div>
-
-        <!-- ZONA DE DESCARGA GLOBAL -->
-        <div class="ads-section" id="seccion-anuncio">
-            <div class="status-text" id="texto-estado">¡Procesamiento completo!</div>
-            <button id="btn-descargar" class="btn-action">📥 Descargar Archivo</button>
-        </div>
-
+    <h2>Analizador de Puntuación (WASM + Regex)</h2>
+    
+    <textarea id="texto-input" placeholder="Escribe tu texto sin signos aquí (ej: papas carnes y jugos como has estado)..."></textarea>
+    
+    <div class="contadores">
+        <span id="contador-palabras">Palabras: 0</span>
+        <span id="contador-caracteres">Caracteres: 0</span>
     </div>
 
-    <script>
-        // =========================================================================
-        // LÓGICA DE TEXTO, PUNTUACIÓN IA Y TRADUCCIÓN
-        // =========================================================================
-        const textarea = document.getElementById('input-texto');
-        let arraySugerencias = []; 
-        let punctuationPipeline = null;
+    <button id="btn-analizar">✨ Auto-Puntuar y Revisar</button>
+    <div id="estado">El modelo local se descargará en caché durante la primera ejecución.</div>
 
-        // Carga diferida del modelo de IA local para puntuación
+    <script type="module">
+        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1';
+        
+        // Configuración para usar los modelos desde Hugging Face y ejecutarlos vía WebAssembly local
+        env.allowLocalModels = false;
+
+        let punctuationPipeline = null;
+        const textarea = document.getElementById('texto-input');
+        const btnAnalizar = document.getElementById('btn-analizar');
+        const estado = document.getElementById('estado');
+
+        // Escucha los eventos del textarea para actualizar contadores en tiempo real
+        textarea.addEventListener('input', actualizarContadores);
+        btnAnalizar.addEventListener('click', autocompletarSignosYAnalizar);
+
         async function cargarModeloPuntuacion() {
-            if (!punctuationPipeline && window.transformersPipeline) {
-                punctuationPipeline = await window.transformersPipeline('punctuation', 'Xenova/fullstop-punctuation-multilingual-large');
+            if (!punctuationPipeline) {
+                estado.innerText = "⏳ Cargando entorno WebAssembly y descargando modelo (solo la primera vez)...";
+                try {
+                    punctuationPipeline = await pipeline('text2text-generation', 'Xenova/fullstop-punctuation-multilingual-large');
+                    estado.innerText = "✅ Motor de IA local listo.";
+                } catch (error) {
+                    estado.innerText = "❌ Error al cargar el modelo local.";
+                    console.error("Error cargando Transformers.js:", error);
+                }
             }
         }
 
-        // Función puente MODIFICADA: Coloca puntos, auto-aplica comas silenciosamente y revisa.
+        function actualizarContadores() {
+            const texto = textarea.value.trim();
+            const caracteres = texto.length;
+            const palabras = texto === "" ? 0 : texto.split(/\s+/).length;
+            
+            document.getElementById('contador-caracteres').innerText = `Caracteres: ${caracteres}`;
+            document.getElementById('contador-palabras').innerText = `Palabras: ${palabras}`;
+        }
+
         async function autocompletarSignosYAnalizar() {
             let texto = textarea.value.trim();
-            if (!texto) return alert("Por favor, ingresa un texto.");
+            if (!texto) return alert("Por favor, ingresa un texto para analizar.");
 
-            let btn = document.getElementById('btn-analizar');
-            btn.disabled = true;
-            btn.innerText = "✨ Colocando puntos y comas...";
+            btnAnalizar.disabled = true;
+            btnAnalizar.innerText = "✨ Procesando estructura y gramática...";
 
             try {
-                // 1. Puntuación estructural con IA Local (Puntos y Mayúsculas iniciales)
+                // 1. MOTOR LOCAL DE EXPRESIONES REGULARES (Reglas Sintácticas)
+                texto = texto.replace(/(\b\w+\b)\s+(\b\w+\b)\s+y\s+(\b\w+\b)/gi, "$1, $2 y $3");
+                texto = texto.replace(/\s+(pero|aunque|sin embargo)\b/gi, ", $1");
+                texto = texto.replace(/\b(como|que|donde|cuando|por que)\s+(has|te|arreglaras|es|esta|estan)\b/gi, "¿$1 $2");
+
+                // 2. PROCESAMIENTO CON LA BIBLIOTECA LOCAL (Transformers.js)
                 await cargarModeloPuntuacion();
                 if (punctuationPipeline) {
+                    estado.innerText = "🧠 Infiriendo puntuación...";
                     let output = await punctuationPipeline(texto);
-                    if (output && output.text) {
+                    
+                    // Extrae el texto generado de la estructura de la respuesta
+                    if (output && output.length > 0 && output[0].generated_text) {
+                        texto = output[0].generated_text;
+                    } else if (output && output.text) {
                         texto = output.text;
-                        textarea.value = texto;
-                        actualizarContadores();
                     }
                 }
 
-                // 2. Auto-corrector silencioso de COMAS usando el motor de reglas
+                // 3. REVISIÓN Y CORRECCIÓN SILENCIOSA CON LANGUAGETOOL
+                estado.innerText = "🔎 Puliendo tildes y ortografía...";
                 let res = await fetch('https://api.languagetool.org/v2/check', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -301,13 +167,9 @@
                     data.matches.forEach(match => {
                         if (match.replacements.length > 0) {
                             let reemplazo = match.replacements[0].value;
-                            let textoOriginal = texto.substring(match.offset + offsetAjuste, match.offset + offsetAjuste + match.length);
+                            let esReglaDeComa = match.rule.id.includes('COMMA') || match.rule.issueType === 'typographical' || match.rule.issueType === 'misspelling';
                             
-                            // Verificar si la sugerencia arregla específicamente una coma faltante
-                            let esReglaDeComa = match.rule.id.includes('COMMA') || match.rule.id.includes('COMA') || match.rule.issueType === 'typographical';
-                            let añadeComa = reemplazo.includes(',') && !textoOriginal.includes(',');
-                            
-                            if (esReglaDeComa || añadeComa) {
+                            if (esReglaDeComa) {
                                 let inicio = match.offset + offsetAjuste;
                                 let fin = inicio + match.length;
                                 texto = texto.substring(0, inicio) + reemplazo + texto.substring(fin);
@@ -315,425 +177,20 @@
                             }
                         }
                     });
-                    
-                    // Actualizar el texto ya con las comas puestas automáticamente
-                    textarea.value = texto;
-                    actualizarContadores();
                 }
 
-                // 3. Analizar los errores ortográficos restantes para mostrarlos en la Interfaz visual
-                analizarTexto();
+                // 4. ACTUALIZAR INTERFAZ
+                textarea.value = texto;
+                actualizarContadores();
+                estado.innerText = "✨ Procesamiento completado.";
 
             } catch (e) {
-                console.error("Error en puntuación automática:", e);
-                analizarTexto(); // Respaldo en caso de fallo de red
+                console.error("Error en el procesamiento:", e);
+                estado.innerText = "❌ Ocurrió un error durante el análisis.";
             } finally {
-                btn.innerText = "✨ Auto-Puntuar y Revisar";
-                btn.disabled = false;
+                btnAnalizar.innerText = "✨ Auto-Puntuar y Revisar";
+                btnAnalizar.disabled = false;
             }
-        }
-
-        function actualizarContadores() {
-            let texto = textarea.value;
-            let caracteres = texto.length;
-            let palabras = texto.trim() === "" ? 0 : texto.trim().split(/\s+/).length;
-            document.getElementById('contador-caracteres').innerText = `Caracteres: ${caracteres}`;
-            document.getElementById('contador-palabras').innerText = `Palabras: ${palabras}`;
-            
-            if(texto.trim() === "") {
-                document.getElementById('contenedor-errores').style.display = 'none';
-                document.getElementById('idioma-detectado').innerText = "Idioma: Auto-Detección";
-            }
-        }
-
-        async function traducirTexto() {
-            let texto = textarea.value.trim();
-            let targetLang = document.getElementById('target-lang').value;
-            if (!texto) return alert("Por favor, ingresa texto para traducir.");
-            
-            let btn = document.getElementById('btn-traducir');
-            btn.innerText = "⏳ Traduciendo...";
-            btn.disabled = true;
-
-            try {
-                let res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(texto)}&langpair=Autodetect|${targetLang}`);
-                let data = await res.json();
-                
-                if(data.responseData && data.responseData.translatedText) {
-                    textarea.value = data.responseData.translatedText;
-                    actualizarContadores();
-                    document.getElementById('contenedor-errores').style.display = 'none';
-                } else {
-                    alert("No se pudo traducir el texto o es demasiado largo.");
-                }
-            } catch(e) {
-                alert("Error de conexión al intentar traducir.");
-            } finally {
-                btn.innerText = "🌐 Traducir";
-                btn.disabled = false;
-            }
-        }
-
-        async function analizarTexto() {
-            let texto = textarea.value.trim();
-            if (!texto) return;
-
-            try {
-                let response = await fetch('https://api.languagetool.org/v2/check', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({ 
-                        'text': texto, 
-                        'language': 'auto',
-                        'level': 'picky'
-                    })
-                });
-
-                let data = await response.json();
-                
-                if(data.language && data.language.name) {
-                    document.getElementById('idioma-detectado').innerText = `Idioma detectado: ${data.language.name}`;
-                }
-
-                mostrarResultados(data.matches || [], texto);
-            } catch (e) {
-                console.error("Error de conexión con LanguageTool.");
-            }
-        }
-
-        function mostrarResultados(matches, textoOriginal) {
-            document.getElementById('badge-errores').innerText = matches.length;
-            let contenedorLista = document.getElementById('lista-errores');
-            contenedorLista.innerHTML = '';
-            arraySugerencias = []; 
-
-            if (matches.length === 0) {
-                contenedorLista.innerHTML = '<div style="color: #34d399; padding: 15px; border: 1px solid #34d399; border-radius: 6px;">¡Excelente! No se detectaron errores.</div>';
-            } else {
-                matches.forEach((err) => {
-                    let textoAfectado = textoOriginal.substring(err.offset, err.offset + err.length);
-                    let esGramatica = err.rule && err.rule.issueType === 'grammar';
-                    let esPuntuacion = err.rule && err.rule.issueType === 'typographical';
-                    
-                    let tipoError = esPuntuacion ? 'Puntuación' : (esGramatica ? 'Gramática' : 'Ortografía');
-                    let claseColor = esPuntuacion ? 'punct' : (esGramatica ? 'grammar' : 'spell');
-                    let colorTexto = esPuntuacion ? '#3b82f6' : (esGramatica ? '#f59e0b' : '#ef4444');
-
-                    let sugerenciasHTML = err.replacements.slice(0, 4).map(rep => {
-                        let idSugerencia = arraySugerencias.length;
-                        arraySugerencias.push(rep.value);
-                        return `<button class="suggestion-btn" onclick="aplicarSugerencia(${err.offset}, ${err.length}, ${idSugerencia})">${rep.value}</button>`;
-                    }).join('');
-
-                    let card = document.createElement('div');
-                    card.className = `error-card ${claseColor}`;
-                    card.innerHTML = `
-                        <div style="font-size: 13px; color: #94a3b8; margin-bottom: 5px;">Detalle: <strong style="color: ${colorTexto}">${tipoError}</strong></div>
-                        <div style="margin-bottom: 8px; font-size: 15px;">Problema en: <span style="text-decoration: underline; color:${colorTexto};">${textoAfectado || '(Espacio/Signo)'}</span></div>
-                        <div style="font-size: 14px; margin-bottom: 12px; color: #cbd5e1;">${err.message}</div>
-                        ${sugerenciasHTML ? `<div>${sugerenciasHTML}</div>` : '<div style="font-size: 12px; color: #94a3b8;">No hay sugerencias automáticas.</div>'}
-                    `;
-                    contenedorLista.appendChild(card);
-                });
-            }
-            document.getElementById('contenedor-errores').style.display = 'block';
-        }
-
-        function aplicarSugerencia(offset, length, idSugerencia) {
-            let nuevoTexto = arraySugerencias[idSugerencia];
-            textarea.value = textarea.value.substring(0, offset) + nuevoTexto + textarea.value.substring(offset + length);
-            actualizarContadores();
-            analizarTexto(); 
-        }
-
-        // =========================================================================
-        // UTILIDADES GENERALES DE INTERFAZ Y NAVEGACIÓN
-        // =========================================================================
-        let blobDescargaLocal = null;
-        let extensionDescargaLocal = "png";
-
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-links button').forEach(el => el.classList.remove('active'));
-            document.getElementById(`tab-${tab}`).classList.add('active');
-            document.getElementById(`nav-${tab}`).classList.add('active');
-            document.getElementById('seccion-anuncio').style.display = 'none';
-        }
-
-        function updateLabel(tipo) {
-            let input = document.getElementById(`input-${tipo}`);
-            let label = document.getElementById(`label-${tipo}`);
-            if (input && input.files && input.files[0]) {
-                label.innerText = "✅ " + input.files[0].name;
-                label.style.borderColor = "#34d399";
-                label.style.color = "#34d399";
-            }
-        }
-
-        function prepararDescarga(blob, extension, mensaje) {
-            blobDescargaLocal = blob;
-            extensionDescargaLocal = extension;
-            document.getElementById('texto-estado').innerText = mensaje;
-            document.getElementById('seccion-anuncio').style.display = 'block';
-            document.getElementById('btn-descargar').onclick = () => {
-                let url = URL.createObjectURL(blobDescargaLocal);
-                let a = document.createElement('a');
-                a.href = url;
-                a.download = `iloveTools_editado.${extensionDescargaLocal}`;
-                a.click();
-            };
-        }
-
-        // =========================================================================
-        // MOTOR DE IMAGEN (Borrador Mágico y Fondo)
-        // =========================================================================
-        let canvas = document.getElementById('canvas-editor');
-        let ctx = canvas.getContext('2d', { willReadFrequently: true });
-        let overlay = document.getElementById('canvas-overlay');
-        let ctxOverlay = overlay.getContext('2d');
-        let canvasOriginal = document.createElement('canvas');
-        let ctxOriginal = canvasOriginal.getContext('2d', { willReadFrequently: true });
-
-        let modoActual = 'borrar'; 
-        let isDrawing = false;
-        let strokeTargetColor = null;
-        let historialEstados = [];
-
-        function setModo(modo) {
-            modoActual = modo;
-            document.getElementById('btn-modo-borrar').classList.toggle('active', modo === 'borrar');
-            document.getElementById('btn-modo-restaurar').classList.toggle('active', modo === 'restaurar');
-        }
-
-        function guardarEstadoHistorial() {
-            if (canvas.width === 0) return;
-            historialEstados.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
-            if (historialEstados.length > 25) historialEstados.shift();
-            document.getElementById('btn-undo').disabled = historialEstados.length <= 1;
-        }
-
-        function deshacerAccion() {
-            if (historialEstados.length <= 1) return;
-            historialEstados.pop(); 
-            ctx.putImageData(historialEstados[historialEstados.length - 1], 0, 0);
-            document.getElementById('btn-undo').disabled = historialEstados.length <= 1;
-        }
-
-        function prepararImagen(event) {
-            let file = event.target.files[0];
-            if (!file) return;
-            document.getElementById('label-borrador').innerText = "✅ " + file.name;
-            document.getElementById('label-borrador').style.borderColor = "#34d399";
-            document.getElementById('label-borrador').style.color = "#34d399";
-
-            let img = new Image();
-            let reader = new FileReader();
-            reader.onload = function(e) {
-                img.onload = function() {
-                    let maxWidth = window.innerWidth > 700 ? 640 : window.innerWidth - 50;
-                    let scale = img.width > maxWidth ? maxWidth / img.width : 1;
-                    let w = Math.floor(img.width * scale), h = Math.floor(img.height * scale);
-
-                    canvas.width = overlay.width = canvasOriginal.width = w;
-                    canvas.height = overlay.height = canvasOriginal.height = h;
-
-                    ctxOriginal.drawImage(img, 0, 0, w, h);
-                    ctx.clearRect(0, 0, w, h);
-                    ctx.drawImage(img, 0, 0, w, h);
-
-                    historialEstados = [];
-                    guardarEstadoHistorial();
-                    document.getElementById('herramientas-borrador').style.display = 'block';
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function eliminarFondoAuto() {
-            let width = canvas.width, height = canvas.height;
-            let imgData = ctx.getImageData(0, 0, width, height);
-            let data = imgData.data;
-            let bgSamples = [];
-            for (let x = 0; x < width; x += 4) {
-                bgSamples.push({ r: data[(0*width+x)*4], g: data[(0*width+x)*4+1], b: data[(0*width+x)*4+2] });
-                bgSamples.push({ r: data[((height-1)*width+x)*4], g: data[((height-1)*width+x)*4+1], b: data[((height-1)*width+x)*4+2] });
-            }
-            for (let y = 0; y < height; y += 4) {
-                bgSamples.push({ r: data[(y*width)*4], g: data[(y*width)*4+1], b: data[(y*width)*4+2] });
-                bgSamples.push({ r: data[(y*width + width - 1)*4], g: data[(y*width + width - 1)*4+1], b: data[(y*width + width - 1)*4+2] });
-            }
-            let avgBg = { r: 0, g: 0, b: 0 };
-            bgSamples.forEach(c => { avgBg.r += c.r; avgBg.g += c.g; avgBg.b += c.b; });
-            avgBg.r /= bgSamples.length; avgBg.g /= bgSamples.length; avgBg.b /= bgSamples.length;
-
-            for (let i = 0; i < data.length; i += 4) {
-                if (Math.sqrt((data[i] - avgBg.r)**2 + (data[i+1] - avgBg.g)**2 + (data[i+2] - avgBg.b)**2) < 55) data[i + 3] = 0; 
-            }
-            ctx.putImageData(imgData, 0, 0);
-            guardarEstadoHistorial();
-        }
-
-        function getPointerPos(e) {
-            let rect = canvas.getBoundingClientRect();
-            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            return { x: Math.floor((clientX - rect.left) * (canvas.width / rect.width)), y: Math.floor((clientY - rect.top) * (canvas.height / rect.height)) };
-        }
-
-        function colorDist(r1, g1, b1, r2, g2, b2) { return Math.sqrt((r1 - r2)**2 + (g1 - g2)**2 + (b1 - b2)**2); }
-
-        function startDrawing(e) {
-            isDrawing = true;
-            let pos = getPointerPos(e);
-            let s = modoActual === 'borrar' ? ctx.getImageData(pos.x, pos.y, 1, 1).data : ctxOriginal.getImageData(pos.x, pos.y, 1, 1).data;
-            strokeTargetColor = { r: s[0], g: s[1], b: s[2] };
-            aplicarTrazoPincel(pos); dibujarCursorRed(pos);
-        }
-
-        function draw(e) {
-            let pos = getPointerPos(e);
-            if (isDrawing) { e.preventDefault(); aplicarTrazoPincel(pos); }
-            dibujarCursorRed(pos);
-        }
-
-        function stopDrawing() {
-            if (!isDrawing) return;
-            isDrawing = false; strokeTargetColor = null;
-            ctxOverlay.clearRect(0, 0, overlay.width, overlay.height);
-            guardarEstadoHistorial();
-        }
-
-        function dibujarCursorRed(pos) {
-            let radius = parseInt(document.getElementById('brush-size').value);
-            ctxOverlay.clearRect(0, 0, overlay.width, overlay.height);
-            ctxOverlay.beginPath(); ctxOverlay.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
-            ctxOverlay.fillStyle = 'rgba(239, 68, 68, 0.3)'; ctxOverlay.strokeStyle = 'rgba(239, 68, 68, 0.85)';
-            ctxOverlay.lineWidth = 1.5; ctxOverlay.fill(); ctxOverlay.stroke();
-        }
-
-        function aplicarTrazoPincel(pos) {
-            let radius = parseInt(document.getElementById('brush-size').value);
-            let tolerance = parseInt(document.getElementById('tolerance-size').value);
-            let usarMagico = document.getElementById('toggle-pincel-magico').checked;
-
-            let imgDataCurrent = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            let imgDataOrig = ctxOriginal.getImageData(0, 0, canvas.width, canvas.height);
-
-            for (let y = Math.max(0, pos.y - radius); y <= Math.min(canvas.height - 1, pos.y + radius); y++) {
-                for (let x = Math.max(0, pos.x - radius); x <= Math.min(canvas.width - 1, pos.x + radius); x++) {
-                    if ((x - pos.x)**2 + (y - pos.y)**2 <= radius**2) {
-                        let idx = (y * canvas.width + x) * 4;
-                        if (usarMagico && strokeTargetColor) {
-                            let currR = modoActual === 'borrar' ? imgDataCurrent.data[idx] : imgDataOrig.data[idx];
-                            let currG = modoActual === 'borrar' ? imgDataCurrent.data[idx+1] : imgDataOrig.data[idx+1];
-                            let currB = modoActual === 'borrar' ? imgDataCurrent.data[idx+2] : imgDataOrig.data[idx+2];
-                            if (colorDist(currR, currG, currB, strokeTargetColor.r, strokeTargetColor.g, strokeTargetColor.b) > tolerance) continue; 
-                        }
-                        if (modoActual === 'borrar') {
-                            imgDataCurrent.data[idx + 3] = 0; 
-                        } else {
-                            imgDataCurrent.data[idx] = imgDataOrig.data[idx]; imgDataCurrent.data[idx + 1] = imgDataOrig.data[idx + 1];
-                            imgDataCurrent.data[idx + 2] = imgDataOrig.data[idx + 2]; imgDataCurrent.data[idx + 3] = imgDataOrig.data[idx + 3];
-                        }
-                    }
-                }
-            }
-            ctx.putImageData(imgDataCurrent, 0, 0);
-        }
-
-        canvas.addEventListener('mousedown', startDrawing); canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDrawing); canvas.addEventListener('mouseleave', () => { stopDrawing(); ctxOverlay.clearRect(0,0,overlay.width,overlay.height); });
-        canvas.addEventListener('touchstart', startDrawing, {passive: false}); canvas.addEventListener('touchmove', draw, {passive: false}); canvas.addEventListener('touchend', stopDrawing);
-
-        function guardarResultadoFinal() {
-            canvas.toBlob((blob) => prepararDescarga(blob, 'png', '¡Imagen transparente descargada con éxito!'), 'image/png');
-        }
-
-        // =========================================================================
-        // HERRAMIENTAS SECUNDARIAS (PDF, COMPRIMIR, CONVERTIR, RECORTAR)
-        // =========================================================================
-        function cambiarModoPdf() {
-            let modo = document.getElementById('modo-pdf').value;
-            document.getElementById('seccion-unir').style.display = modo === 'unir' ? 'block' : 'none';
-            document.getElementById('seccion-dividir').style.display = modo === 'dividir' ? 'block' : 'none';
-        }
-
-        function updateLabelPdf(tipo) {
-            let input = document.getElementById(`input-${tipo}-pdf`);
-            let label = document.getElementById(`label-${tipo}-pdf`);
-            if (input && input.files.length > 0) {
-                label.innerText = tipo === 'unir' ? `✅ ${input.files.length} archivos` : `✅ ${input.files[0].name}`;
-                label.style.borderColor = label.style.color = "#34d399";
-            }
-        }
-
-        async function procesarUnirPdf() {
-            let input = document.getElementById('input-unir-pdf');
-            if (input.files.length < 2) return alert("Selecciona al menos 2 PDFs.");
-            try {
-                const mergedPdf = await PDFLib.PDFDocument.create();
-                for (let file of input.files) {
-                    let pdfDoc = await PDFLib.PDFDocument.load(await file.arrayBuffer());
-                    (await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices())).forEach(page => mergedPdf.addPage(page));
-                }
-                prepararDescarga(new Blob([await mergedPdf.save()], { type: 'application/pdf' }), 'pdf', '¡PDFs unidos con éxito!');
-            } catch (e) { alert("Error al unir PDFs."); }
-        }
-
-        async function procesarDividirPdf() {
-            let input = document.getElementById('input-dividir-pdf');
-            if (!input.files[0]) return alert("Selecciona un PDF.");
-            let num = parseInt(document.getElementById('input-pagina-pdf').value) - 1;
-            try {
-                let pdfDoc = await PDFLib.PDFDocument.load(await input.files[0].arrayBuffer());
-                if (num < 0 || num >= pdfDoc.getPageCount()) return alert("Página no válida.");
-                const subPdf = await PDFLib.PDFDocument.create();
-                let [copiedPage] = await subPdf.copyPages(pdfDoc, [num]);
-                subPdf.addPage(copiedPage);
-                prepararDescarga(new Blob([await subPdf.save()], { type: 'application/pdf' }), 'pdf', `¡Página ${num + 1} extraída!`);
-            } catch (e) { alert("Error al extraer página."); }
-        }
-
-        async function procesarCompresion() {
-            let input = document.getElementById('input-comprimir').files[0];
-            if (!input) return alert("Selecciona una foto.");
-            try {
-                let blob = await imageCompression(input, { maxSizeMB: 0.8, useWebWorker: true });
-                prepararDescarga(blob, input.name.split('.').pop(), `¡Comprimido a ${(blob.size/1024/1024).toFixed(2)} MB!`);
-            } catch (e) { alert("Error al comprimir."); }
-        }
-
-        async function procesarConversion() {
-            let input = document.getElementById('input-convertir').files[0];
-            let formato = document.getElementById('formato-salida').value;
-            if (!input) return alert("Selecciona una foto.");
-            try {
-                let blob = await imageCompression(input, { maxSizeMB: 5, useWebWorker: true, fileType: formato });
-                prepararDescarga(blob, formato.split('/')[1], `¡Convertido a ${formato.split('/')[1].toUpperCase()}!`);
-            } catch (e) { alert("Error al convertir."); }
-        }
-
-        let cropperInstance = null;
-        function prepararRecortar(event) {
-            updateLabel('recortar');
-            let file = event.target.files[0];
-            if (!file) return;
-            let reader = new FileReader();
-            reader.onload = function(e) {
-                let img = document.getElementById('cropper-image');
-                img.src = e.target.result;
-                document.getElementById('cropper-container').style.display = 'block';
-                document.getElementById('btn-recortar').style.display = 'block';
-                if (cropperInstance) cropperInstance.destroy();
-                cropperInstance = new Cropper(img, { viewMode: 2, autoCropArea: 0.8, responsive: true });
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function procesarRecorte() {
-            if (!cropperInstance) return;
-            cropperInstance.getCroppedCanvas().toBlob((blob) => prepararDescarga(blob, 'png', '¡Recorte aplicado con éxito!'), 'image/png');
         }
     </script>
 </body>
