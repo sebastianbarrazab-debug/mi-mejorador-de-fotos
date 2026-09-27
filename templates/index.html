@@ -11,16 +11,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
-    <!-- LIBRERÍA DE IA GENERATIVA (Transformers.js - Flan-T5) -->
+    <!-- LIBRERÍA DE IA PARA PUNTUACIÓN AUTOMÁTICA (Transformers.js) -->
     <script type="module">
         import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js';
-        window.loadTextPipeline = async function() {
-            if (!window.textGenPipeline) {
-                // Modelo ligero optimizado para corrección contextual y reescritura
-                window.textGenPipeline = await pipeline('text2text-generation', 'Xenova/flan-t5-small');
-            }
-            return window.textGenPipeline;
-        };
+        window.transformersPipeline = pipeline;
     </script>
 
     <style>
@@ -54,6 +48,11 @@
         .text-editor { width: 100%; height: 220px; background: #1e293b; color: #f1f5f9; border: 1px solid #374151; border-radius: 8px; padding: 15px; font-size: 15px; resize: vertical; box-sizing: border-box; font-family: inherit; line-height: 1.6; }
         .text-editor:focus { outline: none; border-color: #3b82f6; }
         .status-bar { display: flex; justify-content: space-between; font-size: 13px; color: #94a3b8; margin: 10px 0 20px 0; }
+        .error-card { background: #1e293b; border-radius: 8px; border-left: 4px solid #3b82f6; padding: 15px; margin-bottom: 12px; text-align: left; }
+        .error-card.grammar { border-left-color: #f59e0b; }
+        .error-card.spell { border-left-color: #ef4444; }
+        .suggestion-btn { background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 13px; cursor: pointer; margin: 6px 6px 0 0; transition: 0.2s; font-weight: 500; }
+        .suggestion-btn:hover { background: #059669; }
 
         .editor-panel { background: #1e293b; border-radius: 12px; padding: 18px; margin-bottom: 20px; border: 1px solid #374151; display: flex; flex-direction: column; gap: 15px; text-align: left; }
         .mode-selector { display: flex; gap: 10px; justify-content: center; }
@@ -98,19 +97,19 @@
         <!-- PESTAÑA 1: HERRAMIENTAS DE TEXTO Y TRADUCCIÓN -->
         <div id="tab-texto" class="tab-content active">
             <div class="card">
-                <h2>Corrector Contextual y Traductor IA</h2>
-                <p>Analiza el sentido profundo del texto mediante IA local, corrigiendo errores semánticos, puntuación y gramática.</p>
+                <h2>Corrector Ortográfico y Traductor IA</h2>
+                <p>Analiza sintaxis, gramática y traduce automáticamente reconociendo el idioma de origen.</p>
                 
                 <textarea id="input-texto" class="text-editor" placeholder="Escribe o pega tu texto aquí..." oninput="actualizarContadores()"></textarea>
                 
                 <div class="status-bar">
                     <span id="contador-palabras">Palabras: 0</span>
                     <span id="contador-caracteres">Caracteres: 0</span>
-                    <span id="idioma-detectado">IA Local lista</span>
+                    <span id="idioma-detectado">Idioma: Auto-Detección</span>
                 </div>
 
                 <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-                    <button id="btn-analizar" class="btn-action" style="margin-bottom: 0; flex: 2;" onclick="corregirTextoConIA()">🧠 Corregir con IA Contextual</button>
+                    <button id="btn-analizar" class="btn-action" style="margin-bottom: 0; flex: 2;" onclick="autocompletarSignosYAnalizar()">✨ Auto-Puntuar y Revisar</button>
                     
                     <select id="target-lang" class="selector-formato" style="margin-bottom: 0; flex: 1; min-width: 120px;">
                         <option value="es">Al Español</option>
@@ -119,6 +118,13 @@
                         <option value="pt">Al Portugués</option>
                     </select>
                     <button id="btn-traducir" class="btn-action" style="margin-bottom: 0; flex: 1; background: #059669;" onclick="traducirTexto()">🌐 Traducir</button>
+                </div>
+
+                <div id="contenedor-errores" style="display: none; text-align: left; margin-top: 20px; border-top: 1px solid #374151; padding-top: 20px;">
+                    <h3 style="margin-top: 0; color: white; font-size: 16px;">
+                        Resultados <span id="badge-errores" style="background: #ef4444; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 10px;">0</span>
+                    </h3>
+                    <div id="lista-errores"></div>
                 </div>
             </div>
         </div>
@@ -244,9 +250,88 @@
 
     <script>
         // =========================================================================
-        // LÓGICA DE TEXTO, CORRECCIÓN CONTEXTUAL IA Y TRADUCCIÓN
+        // LÓGICA DE TEXTO, PUNTUACIÓN IA Y TRADUCCIÓN
         // =========================================================================
         const textarea = document.getElementById('input-texto');
+        let arraySugerencias = []; 
+        let punctuationPipeline = null;
+
+        // Carga diferida del modelo de IA local para puntuación
+        async function cargarModeloPuntuacion() {
+            if (!punctuationPipeline && window.transformersPipeline) {
+                punctuationPipeline = await window.transformersPipeline('punctuation', 'Xenova/fullstop-punctuation-multilingual-large');
+            }
+        }
+
+        // Función puente MODIFICADA: Coloca puntos, auto-aplica comas silenciosamente y revisa.
+        async function autocompletarSignosYAnalizar() {
+            let texto = textarea.value.trim();
+            if (!texto) return alert("Por favor, ingresa un texto.");
+
+            let btn = document.getElementById('btn-analizar');
+            btn.disabled = true;
+            btn.innerText = "✨ Colocando puntos y comas...";
+
+            try {
+                // 1. Puntuación estructural con IA Local (Puntos y Mayúsculas iniciales)
+                await cargarModeloPuntuacion();
+                if (punctuationPipeline) {
+                    let output = await punctuationPipeline(texto);
+                    if (output && output.text) {
+                        texto = output.text;
+                        textarea.value = texto;
+                        actualizarContadores();
+                    }
+                }
+
+                // 2. Auto-corrector silencioso de COMAS usando el motor de reglas
+                let res = await fetch('https://api.languagetool.org/v2/check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ 
+                        'text': texto, 
+                        'language': 'es',
+                        'level': 'picky'
+                    })
+                });
+                let data = await res.json();
+                
+                if (data.matches && data.matches.length > 0) {
+                    let offsetAjuste = 0;
+                    data.matches.forEach(match => {
+                        if (match.replacements.length > 0) {
+                            let reemplazo = match.replacements[0].value;
+                            let textoOriginal = texto.substring(match.offset + offsetAjuste, match.offset + offsetAjuste + match.length);
+                            
+                            // Verificar si la sugerencia arregla específicamente una coma faltante
+                            let esReglaDeComa = match.rule.id.includes('COMMA') || match.rule.id.includes('COMA') || match.rule.issueType === 'typographical';
+                            let añadeComa = reemplazo.includes(',') && !textoOriginal.includes(',');
+                            
+                            if (esReglaDeComa || añadeComa) {
+                                let inicio = match.offset + offsetAjuste;
+                                let fin = inicio + match.length;
+                                texto = texto.substring(0, inicio) + reemplazo + texto.substring(fin);
+                                offsetAjuste += (reemplazo.length - match.length);
+                            }
+                        }
+                    });
+                    
+                    // Actualizar el texto ya con las comas puestas automáticamente
+                    textarea.value = texto;
+                    actualizarContadores();
+                }
+
+                // 3. Analizar los errores ortográficos restantes para mostrarlos en la Interfaz visual
+                analizarTexto();
+
+            } catch (e) {
+                console.error("Error en puntuación automática:", e);
+                analizarTexto(); // Respaldo en caso de fallo de red
+            } finally {
+                btn.innerText = "✨ Auto-Puntuar y Revisar";
+                btn.disabled = false;
+            }
+        }
 
         function actualizarContadores() {
             let texto = textarea.value;
@@ -254,35 +339,10 @@
             let palabras = texto.trim() === "" ? 0 : texto.trim().split(/\s+/).length;
             document.getElementById('contador-caracteres').innerText = `Caracteres: ${caracteres}`;
             document.getElementById('contador-palabras').innerText = `Palabras: ${palabras}`;
-        }
-
-        async function corregirTextoConIA() {
-            let texto = textarea.value.trim();
-            if (!texto) return alert("Por favor, ingresa un texto.");
-
-            let btn = document.getElementById('btn-analizar');
-            btn.disabled = true;
-            btn.innerText = "🧠 Analizando contexto y corrigiendo...";
-
-            try {
-                if (window.loadTextPipeline) {
-                    let pipelineInstance = await window.loadTextPipeline();
-                    if (pipelineInstance) {
-                        let prompt = `Corrige la gramática, ortografía, puntuación y sentido de este texto en español de manera natural: "${texto}"`;
-                        let output = await pipelineInstance(prompt, { max_new_tokens: 250 });
-                        
-                        if (output && output[0] && output[0].generated_text) {
-                            textarea.value = output[0].generated_text;
-                            actualizarContadores();
-                        }
-                    }
-                }
-            } catch (e) {
-                console.error("Error al procesar con IA generativa:", e);
-                alert("Ocurrió un error al ejecutar la IA local.");
-            } finally {
-                btn.innerText = "🧠 Corregir con IA Contextual";
-                btn.disabled = false;
+            
+            if(texto.trim() === "") {
+                document.getElementById('contenedor-errores').style.display = 'none';
+                document.getElementById('idioma-detectado').innerText = "Idioma: Auto-Detección";
             }
         }
 
@@ -302,6 +362,7 @@
                 if(data.responseData && data.responseData.translatedText) {
                     textarea.value = data.responseData.translatedText;
                     actualizarContadores();
+                    document.getElementById('contenedor-errores').style.display = 'none';
                 } else {
                     alert("No se pudo traducir el texto o es demasiado largo.");
                 }
@@ -311,6 +372,78 @@
                 btn.innerText = "🌐 Traducir";
                 btn.disabled = false;
             }
+        }
+
+        async function analizarTexto() {
+            let texto = textarea.value.trim();
+            if (!texto) return;
+
+            try {
+                let response = await fetch('https://api.languagetool.org/v2/check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ 
+                        'text': texto, 
+                        'language': 'auto',
+                        'level': 'picky'
+                    })
+                });
+
+                let data = await response.json();
+                
+                if(data.language && data.language.name) {
+                    document.getElementById('idioma-detectado').innerText = `Idioma detectado: ${data.language.name}`;
+                }
+
+                mostrarResultados(data.matches || [], texto);
+            } catch (e) {
+                console.error("Error de conexión con LanguageTool.");
+            }
+        }
+
+        function mostrarResultados(matches, textoOriginal) {
+            document.getElementById('badge-errores').innerText = matches.length;
+            let contenedorLista = document.getElementById('lista-errores');
+            contenedorLista.innerHTML = '';
+            arraySugerencias = []; 
+
+            if (matches.length === 0) {
+                contenedorLista.innerHTML = '<div style="color: #34d399; padding: 15px; border: 1px solid #34d399; border-radius: 6px;">¡Excelente! No se detectaron errores.</div>';
+            } else {
+                matches.forEach((err) => {
+                    let textoAfectado = textoOriginal.substring(err.offset, err.offset + err.length);
+                    let esGramatica = err.rule && err.rule.issueType === 'grammar';
+                    let esPuntuacion = err.rule && err.rule.issueType === 'typographical';
+                    
+                    let tipoError = esPuntuacion ? 'Puntuación' : (esGramatica ? 'Gramática' : 'Ortografía');
+                    let claseColor = esPuntuacion ? 'punct' : (esGramatica ? 'grammar' : 'spell');
+                    let colorTexto = esPuntuacion ? '#3b82f6' : (esGramatica ? '#f59e0b' : '#ef4444');
+
+                    let sugerenciasHTML = err.replacements.slice(0, 4).map(rep => {
+                        let idSugerencia = arraySugerencias.length;
+                        arraySugerencias.push(rep.value);
+                        return `<button class="suggestion-btn" onclick="aplicarSugerencia(${err.offset}, ${err.length}, ${idSugerencia})">${rep.value}</button>`;
+                    }).join('');
+
+                    let card = document.createElement('div');
+                    card.className = `error-card ${claseColor}`;
+                    card.innerHTML = `
+                        <div style="font-size: 13px; color: #94a3b8; margin-bottom: 5px;">Detalle: <strong style="color: ${colorTexto}">${tipoError}</strong></div>
+                        <div style="margin-bottom: 8px; font-size: 15px;">Problema en: <span style="text-decoration: underline; color:${colorTexto};">${textoAfectado || '(Espacio/Signo)'}</span></div>
+                        <div style="font-size: 14px; margin-bottom: 12px; color: #cbd5e1;">${err.message}</div>
+                        ${sugerenciasHTML ? `<div>${sugerenciasHTML}</div>` : '<div style="font-size: 12px; color: #94a3b8;">No hay sugerencias automáticas.</div>'}
+                    `;
+                    contenedorLista.appendChild(card);
+                });
+            }
+            document.getElementById('contenedor-errores').style.display = 'block';
+        }
+
+        function aplicarSugerencia(offset, length, idSugerencia) {
+            let nuevoTexto = arraySugerencias[idSugerencia];
+            textarea.value = textarea.value.substring(0, offset) + nuevoTexto + textarea.value.substring(offset + length);
+            actualizarContadores();
+            analizarTexto(); 
         }
 
         // =========================================================================
