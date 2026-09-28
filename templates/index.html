@@ -59,6 +59,7 @@
             font-size: 14px;
             color: #64748b;
             text-align: center;
+            min-height: 20px;
         }
         .contadores {
             display: flex;
@@ -75,7 +76,7 @@
 
     <h2>Analizador de Puntuación (WASM + Regex)</h2>
     
-    <textarea id="texto-input" placeholder="Escribe tu texto sin signos aquí (ej: papas carnes y jugos como has estado)..."></textarea>
+    <textarea id="texto-input" placeholder="Escribe tu texto sin signos aquí (ej: El perro, de juan salió a pasear .)..."></textarea>
     
     <div class="contadores">
         <span id="contador-palabras">Palabras: 0</span>
@@ -88,7 +89,6 @@
     <script type="module">
         import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1';
         
-        // Configuración para usar los modelos desde Hugging Face y ejecutarlos vía WebAssembly local
         env.allowLocalModels = false;
 
         let punctuationPipeline = null;
@@ -96,7 +96,6 @@
         const btnAnalizar = document.getElementById('btn-analizar');
         const estado = document.getElementById('estado');
 
-        // Escucha los eventos del textarea para actualizar contadores en tiempo real
         textarea.addEventListener('input', actualizarContadores);
         btnAnalizar.addEventListener('click', autocompletarSignosYAnalizar);
 
@@ -130,18 +129,17 @@
             btnAnalizar.innerText = "✨ Procesando estructura y gramática...";
 
             try {
-                // 1. MOTOR LOCAL DE EXPRESIONES REGULARES (Reglas Sintácticas)
+                // 1. MOTOR LOCAL DE EXPRESIONES REGULARES
                 texto = texto.replace(/(\b\w+\b)\s+(\b\w+\b)\s+y\s+(\b\w+\b)/gi, "$1, $2 y $3");
                 texto = texto.replace(/\s+(pero|aunque|sin embargo)\b/gi, ", $1");
                 texto = texto.replace(/\b(como|que|donde|cuando|por que)\s+(has|te|arreglaras|es|esta|estan)\b/gi, "¿$1 $2");
 
-                // 2. PROCESAMIENTO CON LA BIBLIOTECA LOCAL (Transformers.js)
+                // 2. PROCESAMIENTO NEURONAL CON TRANSFORMERS.JS
                 await cargarModeloPuntuacion();
                 if (punctuationPipeline) {
                     estado.innerText = "🧠 Infiriendo puntuación...";
                     let output = await punctuationPipeline(texto);
                     
-                    // Extrae el texto generado de la estructura de la respuesta
                     if (output && output.length > 0 && output[0].generated_text) {
                         texto = output[0].generated_text;
                     } else if (output && output.text) {
@@ -149,15 +147,15 @@
                     }
                 }
 
-                // 3. REVISIÓN Y CORRECCIÓN SILENCIOSA CON LANGUAGETOOL
-                estado.innerText = "🔎 Puliendo tildes y ortografía...";
+                // 3. REVISIÓN GRAMATICAL PROFUNDA CON LANGUAGETOOL
+                estado.innerText = "🔎 Aplicando reglas ortográficas, tildes y mayúsculas...";
                 let res = await fetch('https://api.languagetool.org/v2/check', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: new URLSearchParams({ 
                         'text': texto, 
                         'language': 'es',
-                        'level': 'picky'
+                        'level': 'picky' // Modo estricto para cazar todos los errores
                     })
                 });
                 let data = await res.json();
@@ -165,24 +163,25 @@
                 if (data.matches && data.matches.length > 0) {
                     let offsetAjuste = 0;
                     data.matches.forEach(match => {
+                        // Ahora se aplican TODAS las sugerencias (nombres, tildes, comas mal puestas)
                         if (match.replacements.length > 0) {
                             let reemplazo = match.replacements[0].value;
-                            let esReglaDeComa = match.rule.id.includes('COMMA') || match.rule.issueType === 'typographical' || match.rule.issueType === 'misspelling';
-                            
-                            if (esReglaDeComa) {
-                                let inicio = match.offset + offsetAjuste;
-                                let fin = inicio + match.length;
-                                texto = texto.substring(0, inicio) + reemplazo + texto.substring(fin);
-                                offsetAjuste += (reemplazo.length - match.length);
-                            }
+                            let inicio = match.offset + offsetAjuste;
+                            let fin = inicio + match.length;
+                            texto = texto.substring(0, inicio) + reemplazo + texto.substring(fin);
+                            offsetAjuste += (reemplazo.length - match.length);
                         }
                     });
                 }
 
-                // 4. ACTUALIZAR INTERFAZ
+                // 4. LIMPIEZA FINAL DE ESPACIOS
+                // Elimina espacios en blanco antes de puntos, comas o signos de interrogación (ej: "pasear ." -> "pasear.")
+                texto = texto.replace(/\s+([.,;:\?!])/g, "$1");
+
+                // 5. ACTUALIZAR INTERFAZ
                 textarea.value = texto;
                 actualizarContadores();
-                estado.innerText = "✨ Procesamiento completado.";
+                estado.innerText = "✨ Texto corregido exitosamente.";
 
             } catch (e) {
                 console.error("Error en el procesamiento:", e);
